@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+.installed.cfg
+*.egg-info
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment
+.env
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Data (never commit - large files)
+*.nwb
+*.h5
+*.slp
+*.avi
+*.mp4
+*.mov
+*.csv
+data/
+cache/
+outputs/
+
+# AllenSDK cache
+vbn_cache/
+vbn_outputs/
+
+# Pose estimation outputs
+*.predictions.slp
+*.predictions.h5
+*_labeled.mp4
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.pytype/
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+logs/
