@@ -1,0 +1,27 @@
+name: vbn-analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - h5py
+  - opencv
+  - pyarrow
+  - pyyaml
+  - tqdm
+  - joblib
+  - ffmpeg
+  - pip:
+      - allensdk==2.16.0
+      - pynwb>=2.5.0
+      - xgboost>=1.7.0
+      - hmmlearn>=0.3.0
+      - python-dotenv>=1.0.0
+      - ipykernel
+      - jupyterlab

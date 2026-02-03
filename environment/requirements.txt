@@ -1,0 +1,19 @@
+# Prefer wheels and conda-forge if possible to avoid source builds.
+allensdk==2.16.0
+pynwb>=2.5.0
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+h5py
+opencv-python
+pyarrow
+pyyaml
+tqdm
+joblib
+xgboost>=1.7.0
+hmmlearn>=0.3.0
+python-dotenv>=1.0.0
+ipykernel
+jupyterlab

@@ -1,0 +1,33 @@
+# VBN Analysis Configuration
+session:
+  default_id: 1055240613
+
+paths:
+  # These are overridden by env vars if set
+  cache_dir: null   # Falls back to ~/data/vbn_cache
+  outputs_dir: null # Falls back to ~/data/vbn_outputs
+  video_dirs: []    # Additional roots to search for raw videos (MP4/etc)
+
+video:
+  preview_duration_sec: 15
+  preview_fps: 30
+  extensions: [".mp4", ".avi", ".mov", ".mkv", ".h5"]
+  preferred_camera: "body"  # body|eye|face|any
+  stage: "symlink"          # symlink|copy|none
+
+frames:
+  default_n_frames: 100
+  image_format: "png"
+
+labeling:
+  default_n_samples: 50
+  sampling_strategy: "behavior-change"  # or "uniform", "random"
+
+pose:
+  backend: "sleap"  # or "dlc"
+  sleap:
+    batch_size: 4
+    default_epochs: 100
+  dlc:
+    max_iters: 50000
+    save_iters: 10000
