@@ -33,10 +33,22 @@ Configuration knobs live in Notebook 00 (or environment variables):
 - `POSE_TOOL` = `sleap` or `dlc`
 - `BIN_SIZE_S` = bin width for fusion (seconds)
 - `MOCK_MODE` = `true` to force synthetic data
+- `VIDEO_SOURCE` = `auto` (default), `local`, or `s3`
+- `VIDEO_CACHE_DIR` = local cache for S3 downloads
+- `VIDEO_BUCKET` = S3 bucket name (default `allen-brain-observatory`)
+- `VIDEO_BASE_PATH` = S3 base prefix (default `visual-behavior-neuropixels/raw-data`)
+- `VIDEO_CAMERAS` = comma-separated cameras (default `eye,face,side`)
 
 ## Access Modes
 - **sdk** (default): Uses AllenSDK to download/cache NWB and discover video assets when available.
 - **manual**: Uses `nwb_path`/`video_dir` from `sessions.csv` without downloading.
+
+## Video Access (Download-First)
+Video assets are fetched from the public S3 bucket by default. The pipeline writes two flat, canonical artifacts:
+- `outputs/video/video_assets.parquet` (one row per `session_id` + `camera`)
+- `outputs/video/frame_times.parquet` (frame index + timestamps per `session_id` + `camera`)
+
+Set `VIDEO_SOURCE=local` to disable S3 downloads and rely solely on `sessions.csv` `video_dir` or existing cache.
 
 ## Timebase Guarantee
 All exported artifacts use a single canonical timebase: **`nwb_seconds`**.
@@ -71,5 +83,9 @@ The registry includes: `step`, `artifact_path`, `exists`, `last_modified`, `sess
 ## Outputs
 Artifacts are written under `outputs/`:
 - `neural/`, `behavior/`, `eye/`, `video/`, `pose/`, `fusion/`, `models/`, `reports/`
+
+SLEAP labeling exports are written to:
+- `outputs/labeling/sleap/{session_id}/{camera}/labels.csv`
+- `outputs/labeling/sleap/{session_id}/{camera}/frames/*.png`
 
 `outputs/` is ignored by git.

@@ -193,38 +193,27 @@ class SessionBundle:
         logger.info(f"Saved eye features to {eye_path}")
         return eye_features
 
-    def load_video_manifest(self, prefer_download: bool = False) -> dict[str, Any]:
-        from io_video import build_video_manifest
+    def load_video_assets(self) -> pd.DataFrame:
+        from io_video import build_video_assets
         cfg = get_config()
         logger = self.ensure_logger()
         outputs_dir = cfg.outputs_dir / "video"
-        manifest_path = outputs_dir / f"session_{self.session_id}_video_manifest.json"
+        assets_path = outputs_dir / "video_assets.parquet"
 
-        if manifest_path.exists():
-            return json.loads(manifest_path.read_text(encoding="utf-8"))
-
-        outputs_dir.mkdir(parents=True, exist_ok=True)
-        manifest = build_video_manifest(
+        assets = build_video_assets(
             session_id=self.session_id,
-            nwb_path=self.nwb_path,
             video_dir=self.video_dir,
-            access_mode=self.access_mode,
             outputs_dir=outputs_dir,
-            prefer_download=prefer_download,
         )
-        logger.info(f"Saved video manifest to {manifest_path}")
-        if not manifest.get("streams"):
+        logger.info(f"Updated video assets at {assets_path}")
+        if assets.empty:
             if "video_unavailable" not in self.qc_flags:
                 self.qc_flags.append("video_unavailable")
-        return manifest
+        return assets
 
-    def load_frame_times(self) -> pd.DataFrame | None:
-        cfg = get_config()
-        outputs_dir = cfg.outputs_dir / "video"
-        frame_path = outputs_dir / f"session_{self.session_id}_frame_times.parquet"
-        if frame_path.exists():
-            return pd.read_parquet(frame_path)
-        return None
+    def load_frame_times(self, camera: str | None = None) -> pd.DataFrame:
+        from io_video import load_frame_times
+        return load_frame_times(session_id=self.session_id, camera=camera)
 
 
 def get_session_bundle(session_id: int, sessions_df: pd.DataFrame | None = None) -> SessionBundle:

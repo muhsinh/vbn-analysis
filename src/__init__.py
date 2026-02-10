@@ -5,6 +5,7 @@ __all__ = [
     "io_sessions",
     "io_nwb",
     "io_video",
+    "io_s3",
     "timebase",
     "qc",
     "viz",

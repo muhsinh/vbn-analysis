@@ -12,6 +12,7 @@ pyarrow
 pyyaml
 tqdm
 joblib
+boto3
 xgboost>=1.7.0
 hmmlearn>=0.3.0
 python-dotenv>=1.0.0

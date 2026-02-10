@@ -1,56 +1,24 @@
-"""Video discovery and frame time alignment."""
+"""Video asset discovery and frame time alignment (download-first)."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
 
-from config import get_config
+from config import get_config, make_provenance
+from io_s3 import list_video_assets as list_s3_assets
+from io_s3 import download_asset
 from qc import compute_video_qc
 from timebase import write_parquet_with_timebase
-
-
-VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv"}
-
-
-def discover_video_files(session_id: int, search_dirs: List[Path]) -> List[Path]:
-    hits: List[Path] = []
-    session_str = str(session_id)
-    for root in search_dirs:
-        if root is None:
-            continue
-        root = Path(root)
-        if not root.exists():
-            continue
-        for path in root.rglob("*"):
-            if path.suffix.lower() in VIDEO_EXTENSIONS and session_str in path.name:
-                hits.append(path)
-    return hits
-
-
-def get_video_metadata(path: Path) -> Tuple[float | None, int | None]:
-    try:
-        import cv2
-    except ImportError:
-        return None, None
-    cap = cv2.VideoCapture(str(path))
-    if not cap.isOpened():
-        return None, None
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    cap.release()
-    fps_val = float(fps) if fps and fps > 0 else None
-    frame_val = int(frame_count) if frame_count and frame_count > 0 else None
-    return fps_val, frame_val
 
 
 def create_preview_clip(video_path: Path, output_path: Path, max_seconds: int = 5) -> Path | None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         import subprocess
+
         subprocess.check_call(
             [
                 "ffmpeg",
@@ -98,7 +66,6 @@ def load_timestamps(path: Path) -> np.ndarray | None:
         return np.load(path)
     if path.suffix.lower() == ".npz":
         data = np.load(path)
-        # take first array
         if data.files:
             return data[data.files[0]]
     if path.suffix.lower() in {".csv", ".tsv"}:
@@ -109,141 +76,311 @@ def load_timestamps(path: Path) -> np.ndarray | None:
     return None
 
 
-def align_frame_times(
-    frame_count: int | None,
-    fps: float | None,
-    t0: float | None,
-    timestamps: np.ndarray | None,
-    anchors: Dict[str, Any] | None = None,
-) -> Tuple[pd.DataFrame | None, str, List[str]]:
-    """Return frame times dataframe, alignment_method, qc_flags."""
-    qc_flags: List[str] = []
-
-    if timestamps is not None and len(timestamps) > 0:
-        frame_idx = np.arange(len(timestamps))
-        df = pd.DataFrame({"frame_idx": frame_idx, "t": timestamps})
-        return df, "direct_timestamps", qc_flags
-
-    if anchors:
-        try:
-            anchor_frames = np.asarray(anchors["frame_idx"], dtype=float)
-            anchor_times = np.asarray(anchors["t"], dtype=float)
-            if frame_count is None:
-                frame_count = int(anchor_frames.max()) + 1
-            frame_idx = np.arange(frame_count)
-            mapped = np.interp(frame_idx, anchor_frames, anchor_times)
-            df = pd.DataFrame({"frame_idx": frame_idx, "t": mapped})
-            return df, "sync_anchors", qc_flags
-        except Exception:
-            pass
-
-    if frame_count is not None and fps is not None and t0 is not None:
-        frame_idx = np.arange(frame_count)
-        times = t0 + frame_idx / fps
-        df = pd.DataFrame({"frame_idx": frame_idx, "t": times})
-        qc_flags.append("LOW_CONFIDENCE_ALIGNMENT")
-        return df, "fps_fallback", qc_flags
-
-    # Tier 4: unavailable
-    qc_flags.append("NO_FRAME_TIMES")
-    return None, "unavailable", qc_flags
-
-
-def build_video_manifest(
-    session_id: int,
-    nwb_path: Path | None,
-    video_dir: Path | None,
-    access_mode: str,
-    outputs_dir: Path,
-    prefer_download: bool = False,
-) -> Dict[str, Any]:
-    cfg = get_config()
-    search_dirs: List[Path] = []
+def _candidate_roots(session_id: int, video_dir: Path | None, cache_dir: Path | None) -> List[Path]:
+    roots: List[Path] = []
     if video_dir:
-        search_dirs.append(video_dir)
-    # fallback: look under outputs/video
-    search_dirs.append(outputs_dir)
+        video_dir = Path(video_dir)
+        roots.extend(
+            [
+                video_dir,
+                video_dir / str(session_id),
+                video_dir / str(session_id) / "behavior_videos",
+            ]
+        )
+    if cache_dir:
+        roots.append(Path(cache_dir) / str(session_id) / "behavior_videos")
+    # De-dup while preserving order
+    seen = set()
+    uniq: List[Path] = []
+    for root in roots:
+        key = str(root)
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(root)
+    return uniq
 
-    videos = discover_video_files(session_id, search_dirs)
-    streams: List[Dict[str, Any]] = []
-    frame_times_df: pd.DataFrame | None = None
-    alignment_method = "unavailable"
+
+def _find_first(root: Path, candidates: List[str]) -> Path | None:
+    for name in candidates:
+        path = root / name
+        if path.exists():
+            return path
+    return None
+
+
+def _resolve_local_assets(
+    session_id: int,
+    camera: str,
+    video_dir: Path | None,
+    cache_dir: Path | None,
+) -> Dict[str, Path | None]:
+    roots = _candidate_roots(session_id, video_dir, cache_dir)
+    video_path = None
+    ts_path = None
+    meta_path = None
+
+    for root in roots:
+        if video_path is None:
+            video_path = _find_first(root, [f"{camera}.mp4"])
+        if ts_path is None:
+            ts_path = _find_first(root, [f"{camera}_timestamps.npy", f"{camera}_timestamps.npz"])
+        if meta_path is None:
+            meta_path = _find_first(root, [f"{camera}_metadata.json", f"{camera}_metadata.mp4"])
+
+    return {
+        "video": video_path,
+        "timestamps": ts_path,
+        "metadata": meta_path,
+    }
+
+
+def _compute_frame_metrics(
+    session_id: int,
+    camera: str,
+    timestamps: np.ndarray | None,
+) -> tuple[pd.DataFrame | None, Dict[str, Any], List[str]]:
     qc_flags: List[str] = []
+    metrics: Dict[str, Any] = {
+        "n_frames": None,
+        "fps_est": None,
+        "t0": None,
+        "tN": None,
+    }
+    if timestamps is None:
+        qc_flags.append("NO_TIMESTAMPS")
+        return None, metrics, qc_flags
 
-    selected_video = videos[0] if videos else None
-    fps = None
-    frame_count = None
-    if selected_video:
-        fps, frame_count = get_video_metadata(selected_video)
+    ts = np.asarray(timestamps, dtype=float)
+    finite = np.isfinite(ts)
+    if not np.all(finite):
+        qc_flags.append("TIMESTAMP_NAN_PRESENT")
 
-    timestamps = None
-    timestamps_path = None
-    if selected_video:
-        # look for sibling timestamp file
-        for suffix in [".npy", ".npz", ".csv"]:
-            candidate = selected_video.with_suffix(selected_video.suffix + suffix)
-            if candidate.exists():
-                timestamps_path = candidate
-                timestamps = load_timestamps(candidate)
-                break
+    valid_ts = ts[finite]
+    if valid_ts.size == 0:
+        qc_flags.append("NO_VALID_TIMESTAMPS")
+        return None, metrics, qc_flags
 
-    frame_times_df, alignment_method, qc_flags = align_frame_times(
-        frame_count=frame_count,
-        fps=fps,
-        t0=0.0 if frame_count is not None and fps is not None else None,
-        timestamps=timestamps,
-        anchors=None,
+    frame_idx = np.arange(len(ts))[finite]
+    frame_times_df = pd.DataFrame(
+        {
+            "session_id": session_id,
+            "camera": camera,
+            "frame_idx": frame_idx,
+            "t": valid_ts,
+        }
     )
 
-    if selected_video:
-        streams.append(
+    metrics["n_frames"] = int(valid_ts.size)
+    metrics["t0"] = float(valid_ts[0])
+    metrics["tN"] = float(valid_ts[-1])
+
+    if valid_ts.size >= 2:
+        diffs = np.diff(valid_ts)
+        med = float(np.median(diffs))
+        if med > 0:
+            metrics["fps_est"] = 1.0 / med
+
+    qc = compute_video_qc(frame_times_df[["frame_idx", "t"]], metrics["fps_est"])
+    if qc.get("monotonic") is False:
+        qc_flags.append("NON_MONOTONIC")
+    if (qc.get("dropped_frames") or 0) > 0:
+        qc_flags.append("DROPPED_FRAMES")
+
+    return frame_times_df, metrics, qc_flags
+
+
+def _join_flags(flags: List[str]) -> str:
+    uniq = []
+    seen = set()
+    for flag in flags:
+        if not flag or flag in seen:
+            continue
+        seen.add(flag)
+        uniq.append(flag)
+    return "|".join(uniq)
+
+
+def build_video_assets(
+    session_id: int,
+    video_dir: Path | None = None,
+    outputs_dir: Path | None = None,
+    download_missing: bool | None = None,
+) -> pd.DataFrame:
+    cfg = get_config()
+    if outputs_dir is None:
+        outputs_dir = cfg.outputs_dir / "video"
+    outputs_dir.mkdir(parents=True, exist_ok=True)
+
+    if download_missing is None:
+        download_missing = cfg.video_source in {"auto", "s3"}
+
+    s3_assets = list_s3_assets(session_id, cameras=cfg.video_cameras)
+
+    asset_rows: List[Dict[str, Any]] = []
+    frame_times_rows: List[pd.DataFrame] = []
+
+    for camera in cfg.video_cameras:
+        local_assets = _resolve_local_assets(
+            session_id=session_id,
+            camera=camera,
+            video_dir=video_dir,
+            cache_dir=cfg.video_cache_dir,
+        )
+        qc_flags: List[str] = []
+
+        local_video = local_assets["video"]
+        local_ts = local_assets["timestamps"]
+        local_meta = local_assets["metadata"]
+
+        downloaded = False
+        if download_missing:
+            if local_video is None:
+                try:
+                    local_video = (
+                        Path(cfg.video_cache_dir)
+                        / str(session_id)
+                        / "behavior_videos"
+                        / f"{camera}.mp4"
+                    )
+                    download_asset(s3_assets[camera]["s3_uri_video"], local_video)
+                    downloaded = True
+                except Exception:
+                    local_video = None
+                    qc_flags.append("DOWNLOAD_FAILED_VIDEO")
+
+            if local_ts is None:
+                try:
+                    local_ts = (
+                        Path(cfg.video_cache_dir)
+                        / str(session_id)
+                        / "behavior_videos"
+                        / f"{camera}_timestamps.npy"
+                    )
+                    download_asset(s3_assets[camera]["s3_uri_timestamps"], local_ts)
+                    downloaded = True
+                except Exception:
+                    local_ts = None
+                    qc_flags.append("DOWNLOAD_FAILED_TIMESTAMPS")
+
+            if local_meta is None:
+                try:
+                    local_meta = (
+                        Path(cfg.video_cache_dir)
+                        / str(session_id)
+                        / "behavior_videos"
+                        / f"{camera}_metadata.json"
+                    )
+                    download_asset(s3_assets[camera]["s3_uri_metadata"], local_meta)
+                    downloaded = True
+                except Exception:
+                    local_meta = None
+                    qc_flags.append("DOWNLOAD_FAILED_METADATA")
+
+        timestamps = load_timestamps(local_ts) if local_ts else None
+        frame_times_df, metrics, ts_flags = _compute_frame_metrics(session_id, camera, timestamps)
+        qc_flags.extend(ts_flags)
+
+        if frame_times_df is not None:
+            frame_times_rows.append(frame_times_df)
+
+        source = "local"
+        if downloaded or (download_missing and local_video is None and local_ts is None):
+            source = "s3"
+
+        asset_rows.append(
             {
-                "stream_name": "primary",
-                "file_path": str(selected_video),
-                "fps": fps,
-                "frame_count": frame_count,
-                "timestamps_path": str(timestamps_path) if timestamps_path else None,
-                "alignment_method": alignment_method,
-                "qc_flags": qc_flags,
+                "session_id": session_id,
+                "camera": camera,
+                "source": source,
+                "s3_uri_video": s3_assets[camera]["s3_uri_video"],
+                "s3_uri_timestamps": s3_assets[camera]["s3_uri_timestamps"],
+                "s3_uri_metadata": s3_assets[camera]["s3_uri_metadata"],
+                "http_url_video": s3_assets[camera]["http_url_video"],
+                "local_video_path": str(local_video) if local_video else None,
+                "local_timestamps_path": str(local_ts) if local_ts else None,
+                "local_metadata_path": str(local_meta) if local_meta else None,
+                "n_frames": metrics["n_frames"],
+                "fps_est": metrics["fps_est"],
+                "t0": metrics["t0"],
+                "tN": metrics["tN"],
+                "qc_flags": _join_flags(qc_flags),
             }
         )
 
-    from config import make_provenance
+    assets_df = pd.DataFrame(asset_rows)
+    assets_path = outputs_dir / "video_assets.parquet"
+    _upsert_assets(assets_df, assets_path)
 
-    manifest = {
-        "session_id": session_id,
-        "streams": streams,
-        "alignment_method": alignment_method,
-        "qc_flags": qc_flags,
-        "timebase": "nwb_seconds",
-        "provenance": make_provenance(session_id, alignment_method),
-    }
+    if frame_times_rows:
+        frames_df = pd.concat(frame_times_rows, ignore_index=True)
+        frames_path = outputs_dir / "frame_times.parquet"
+        _upsert_frame_times(frames_df, frames_path)
 
-    outputs_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = outputs_dir / f"session_{session_id}_video_manifest.json"
-    with manifest_path.open("w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
+    return assets_df
 
-    # Frame times output when available
-    if frame_times_df is not None and selected_video is not None:
-        frame_times_df["stream_name"] = "primary"
-        frame_path = outputs_dir / f"session_{session_id}_frame_times.parquet"
-        write_parquet_with_timebase(
-            frame_times_df,
-            frame_path,
-            timebase="nwb_seconds",
-            provenance=manifest["provenance"],
-            required_columns=["frame_idx", "t", "stream_name"],
-        )
-        # QC output
-        qc = compute_video_qc(frame_times_df, fps)
-        qc_path = outputs_dir / f"session_{session_id}_video_qc.json"
-        with qc_path.open("w", encoding="utf-8") as f:
-            json.dump(qc, f, indent=2)
 
-    # Preview clip
-    if selected_video is not None:
-        preview_path = outputs_dir / f"session_{session_id}_preview.mp4"
-        create_preview_clip(selected_video, preview_path)
+def _upsert_assets(new_rows: pd.DataFrame, path: Path) -> Path:
+    if new_rows is None or new_rows.empty:
+        return path
+    if path.exists():
+        existing = pd.read_parquet(path)
+        keys = set(map(tuple, new_rows[["session_id", "camera"]].values))
+        if not existing.empty:
+            existing_keys = existing.set_index(["session_id", "camera"]).index
+            mask = [key not in keys for key in existing_keys]
+            existing = existing.loc[mask].reset_index(drop=True)
+        combined = pd.concat([existing, new_rows], ignore_index=True)
+    else:
+        combined = new_rows
+    combined.to_parquet(path, index=False)
+    return path
 
-    return manifest
+
+def _upsert_frame_times(new_rows: pd.DataFrame, path: Path) -> Path:
+    if new_rows is None or new_rows.empty:
+        return path
+    if path.exists():
+        existing = pd.read_parquet(path)
+        keys = set(map(tuple, new_rows[["session_id", "camera"]].drop_duplicates().values))
+        if not existing.empty:
+            existing_keys = existing.set_index(["session_id", "camera"]).index
+            mask = [key not in keys for key in existing_keys]
+            existing = existing.loc[mask].reset_index(drop=True)
+        combined = pd.concat([existing, new_rows], ignore_index=True)
+    else:
+        combined = new_rows
+    write_parquet_with_timebase(
+        combined,
+        path,
+        timebase="nwb_seconds",
+        provenance=make_provenance(None, "timestamps"),
+        required_columns=["session_id", "camera", "frame_idx", "t"],
+    )
+    return path
+
+
+def load_video_assets(session_id: int | None = None, camera: str | None = None) -> pd.DataFrame:
+    cfg = get_config()
+    path = cfg.outputs_dir / "video" / "video_assets.parquet"
+    if not path.exists():
+        return pd.DataFrame()
+    df = pd.read_parquet(path)
+    if session_id is not None:
+        df = df[df["session_id"] == session_id]
+    if camera is not None:
+        df = df[df["camera"] == camera]
+    return df.reset_index(drop=True)
+
+
+def load_frame_times(session_id: int | None = None, camera: str | None = None) -> pd.DataFrame:
+    cfg = get_config()
+    path = cfg.outputs_dir / "video" / "frame_times.parquet"
+    if not path.exists():
+        return pd.DataFrame()
+    df = pd.read_parquet(path)
+    if session_id is not None:
+        df = df[df["session_id"] == session_id]
+    if camera is not None:
+        df = df[df["camera"] == camera]
+    return df.reset_index(drop=True)

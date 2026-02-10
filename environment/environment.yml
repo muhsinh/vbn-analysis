@@ -17,6 +17,7 @@ dependencies:
   - tqdm
   - joblib
   - ffmpeg
+  - boto3
   - pip:
       - allensdk==2.16.0
       - pynwb>=2.5.0

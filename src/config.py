@@ -23,6 +23,12 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
         return default
     return value.strip().lower() in {"1", "true", "yes", "y"}
 
+def _parse_csv(value: str | None, default: list[str]) -> list[str]:
+    if value is None:
+        return default
+    items = [item.strip() for item in value.split(",")]
+    return [item for item in items if item]
+
 
 @dataclass
 class Config:
@@ -39,6 +45,11 @@ class Config:
     cache_dir: Path = ROOT_DIR / "outputs" / "cache"
     pose_projects_dir: Path = ROOT_DIR / "pose_projects"
     data_dir: Path = ROOT_DIR / "data"
+    video_source: str = "auto"
+    video_cache_dir: Path = ROOT_DIR / "data" / "raw" / "visual-behavior-neuropixels"
+    video_bucket: str = "allen-brain-observatory"
+    video_base_path: str = "visual-behavior-neuropixels/raw-data"
+    video_cameras: list[str] = field(default_factory=lambda: ["eye", "face", "side"])
     sessions_csv: Path = ROOT_DIR / "sessions.csv"
     legacy_dir: Path = ROOT_DIR / "legacy"
 
@@ -49,6 +60,7 @@ class Config:
         (self.outputs_dir / "reports").mkdir(parents=True, exist_ok=True)
         self.pose_projects_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.video_cache_dir.mkdir(parents=True, exist_ok=True)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -62,6 +74,11 @@ class Config:
             "cache_dir": str(self.cache_dir),
             "pose_projects_dir": str(self.pose_projects_dir),
             "data_dir": str(self.data_dir),
+            "video_source": self.video_source,
+            "video_cache_dir": str(self.video_cache_dir),
+            "video_bucket": self.video_bucket,
+            "video_base_path": self.video_base_path,
+            "video_cameras": self.video_cameras,
             "sessions_csv": str(self.sessions_csv),
             "legacy_dir": str(self.legacy_dir),
             "code_version": get_code_version(),
@@ -80,6 +97,16 @@ def get_config() -> Config:
             model_name=_get_env("MODEL_NAME", "xgboost"),
             bin_size_s=float(_get_env("BIN_SIZE_S", "0.025")),
             mock_mode=_as_bool(_get_env("MOCK_MODE"), False),
+            video_source=_get_env("VIDEO_SOURCE", "auto"),
+            video_cache_dir=Path(
+                _get_env(
+                    "VIDEO_CACHE_DIR",
+                    str(ROOT_DIR / "data" / "raw" / "visual-behavior-neuropixels"),
+                )
+            ),
+            video_bucket=_get_env("VIDEO_BUCKET", "allen-brain-observatory"),
+            video_base_path=_get_env("VIDEO_BASE_PATH", "visual-behavior-neuropixels/raw-data"),
+            video_cameras=_parse_csv(_get_env("VIDEO_CAMERAS"), ["eye", "face", "side"]),
         )
     return _CONFIG
 

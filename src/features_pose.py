@@ -65,6 +65,55 @@ def export_frame_samples(
     return output_dir
 
 
+def export_labeling_frames(
+    video_path: Path,
+    frame_indices: np.ndarray,
+    output_dir: Path,
+    frame_times: pd.DataFrame,
+    session_id: int,
+    camera: str,
+) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    frames_dir = output_dir / "frames"
+    frames_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        import cv2
+    except ImportError:
+        return output_dir
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        return output_dir
+
+    rows = []
+    for idx in frame_indices:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
+        ok, frame = cap.read()
+        if not ok:
+            continue
+        filename = f"frame_{int(idx):06d}.png"
+        img_path = frames_dir / filename
+        cv2.imwrite(str(img_path), frame)
+        t = frame_times.loc[frame_times["frame_idx"] == idx, "t"]
+        t_val = float(t.iloc[0]) if not t.empty else np.nan
+        rows.append(
+            {
+                "image_path": str(Path("frames") / filename),
+                "session_id": session_id,
+                "camera": camera,
+                "frame_idx": int(idx),
+                "t": t_val,
+            }
+        )
+
+    cap.release()
+
+    if rows:
+        labels_path = output_dir / "labels.csv"
+        pd.DataFrame(rows).to_csv(labels_path, index=False)
+    return output_dir
+
+
 def derive_pose_features(pose_df: pd.DataFrame | None) -> pd.DataFrame | None:
     if pose_df is None or pose_df.empty:
         return None
