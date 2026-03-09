@@ -216,7 +216,13 @@ class SessionBundle:
         return load_frame_times(session_id=self.session_id, camera=camera)
 
 
-def get_session_bundle(session_id: int, sessions_df: pd.DataFrame | None = None) -> SessionBundle:
+def get_session_bundle(
+    session_id: int,
+    sessions_df: pd.DataFrame | None = None,
+    *,
+    resolve_nwb: bool = True,
+    inspect_modalities: bool = True,
+) -> SessionBundle:
     cfg = get_config()
     if sessions_df is None:
         sessions_df = load_sessions_csv()
@@ -231,14 +237,19 @@ def get_session_bundle(session_id: int, sessions_df: pd.DataFrame | None = None)
         nwb_path = Path(nwb_path_str) if nwb_path_str else None
         video_dir = Path(video_dir_str) if video_dir_str else None
 
-    resolved_nwb_path = io_nwb.resolve_nwb_path(
-        session_id=session_id,
-        access_mode=cfg.access_mode,
-        nwb_path_override=nwb_path,
-    )
+    resolved_nwb_path = None
+    if resolve_nwb:
+        resolved_nwb_path = io_nwb.resolve_nwb_path(
+            session_id=session_id,
+            access_mode=cfg.access_mode,
+            nwb_path_override=nwb_path,
+        )
+    else:
+        # Video-only / labeling workflows shouldn't trigger NWB resolution/download.
+        resolved_nwb_path = nwb_path
 
     modalities = {}
-    if resolved_nwb_path is not None:
+    if inspect_modalities and resolved_nwb_path is not None:
         with io_nwb.open_nwb_handle(resolved_nwb_path, mock_mode=cfg.mock_mode) as nwb:
             modalities = io_nwb.inspect_modalities(nwb)
 

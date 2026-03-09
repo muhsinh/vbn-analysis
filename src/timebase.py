@@ -100,6 +100,8 @@ def bin_continuous_features(df: pd.DataFrame, time_grid: np.ndarray, agg: str = 
     df["bin"] = np.searchsorted(time_grid, df["t"].to_numpy(), side="right") - 1
     df = df[df["bin"].between(0, len(time_grid) - 1)]
     grouped = df.groupby("bin").agg(agg)
+    if "t" in grouped.columns:
+        grouped = grouped.drop(columns=["t"])
     grouped = grouped.reindex(range(len(time_grid)), fill_value=np.nan)
     grouped.insert(0, "t", time_grid)
     return grouped.reset_index(drop=True)
