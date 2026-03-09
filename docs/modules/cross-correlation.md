@@ -295,7 +295,7 @@ model to a full model that includes lagged values of `cause`.
 | `p_value` | `float` | p-value from the F-distribution. |
 | `r2_restricted` | `float` | R-squared of the autoregressive-only model. |
 | `r2_full` | `float` | R-squared of the full model (with cause lags). |
-| `improvement` | `float` | `r2_full - r2_restricted` -- the R-squared gain from adding the cause. |
+| `improvement` | `float` | `r2_full - r2_restricted`, the R-squared gain from adding the cause. |
 
 !!! info "Interpretation"
     - Low p-value (< 0.05) suggests the `cause` signal Granger-causes the

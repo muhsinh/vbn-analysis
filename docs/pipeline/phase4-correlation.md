@@ -8,7 +8,7 @@ Phase 4 spans **Notebooks 08-09** and answers the central scientific question: *
 
 Before any analysis can run, neural spike times and behavior features must be aligned to a **common time grid**. The `build_fusion_table()` function in `modeling.py` handles this:
 
-```python title="src/modeling.py -- build_fusion_table()"
+```python title="src/modeling.py:build_fusion_table()"
 def build_fusion_table(spike_times, motifs, bin_size_s):
     # Determine time range from neural data (preferred) or behavior
     if spike_times:
@@ -40,7 +40,7 @@ def build_fusion_table(spike_times, motifs, bin_size_s):
 
 ### How `build_time_grid` works
 
-```python title="src/timebase.py -- build_time_grid()"
+```python title="src/timebase.py:build_time_grid()"
 def build_time_grid(start, end, bin_size_s):
     n_bins = int(np.floor((end - start) / bin_size_s))
     return start + np.arange(n_bins) * bin_size_s
@@ -50,7 +50,7 @@ With the default `bin_size_s=0.025` (25 ms), a 1-hour session produces approxima
 
 ### How `bin_spike_times` works
 
-```python title="src/timebase.py -- bin_spike_times()"
+```python title="src/timebase.py:bin_spike_times()"
 def bin_spike_times(spike_times, time_grid, bin_size_s):
     counts = {}
     for unit_id, times in spike_times.items():
@@ -65,7 +65,7 @@ def bin_spike_times(spike_times, time_grid, bin_size_s):
 
 ### How `bin_continuous_features` works
 
-```python title="src/timebase.py -- bin_continuous_features()"
+```python title="src/timebase.py:bin_continuous_features()"
 def bin_continuous_features(df, time_grid, agg="mean"):
     df = df.copy()
     df["bin"] = np.searchsorted(time_grid, df["t"].to_numpy(),
@@ -85,7 +85,7 @@ def bin_continuous_features(df, time_grid, agg="mean"):
 !!! note "Fusion table shape"
     The resulting DataFrame has one row per time bin and columns for:
 
-    - `t` -- bin center time
+    - `t`: bin center time
     - One column per neural unit (spike counts)
     - Behavioral feature columns (`pose_speed`, `pupil_z`, `is_still`, etc.)
 
@@ -109,7 +109,7 @@ The result is a trial-averaged firing rate as a function of time relative to the
 
 ### How `compute_peth()` works
 
-```python title="src/neural_events.py -- compute_peth()"
+```python title="src/neural_events.py:compute_peth()"
 def compute_peth(spike_times, event_times,
                  window=(-0.5, 1.0), bin_size=0.01):
     pre, post = window
@@ -167,7 +167,7 @@ def compute_peth(spike_times, event_times,
 
 `compute_population_peth()` runs `compute_peth()` for every unit and stacks the results:
 
-```python title="src/neural_events.py -- compute_population_peth()"
+```python title="src/neural_events.py:compute_population_peth()"
 def compute_population_peth(spike_times_dict, event_times,
                             window=(-0.5, 1.0), bin_size=0.01,
                             unit_ids=None):
@@ -197,7 +197,7 @@ The `population_matrix` is an `(n_units, n_bins)` array that can be visualized a
 
 ### Trial-Averaged Rates by Condition
 
-```python title="src/neural_events.py -- trial_averaged_rates()"
+```python title="src/neural_events.py:trial_averaged_rates()"
 def trial_averaged_rates(spike_times_dict, trials,
                          group_col="trial_type",
                          window=(-0.5, 1.0), bin_size=0.025):
@@ -222,7 +222,7 @@ Cross-correlation measures the **linear relationship between two signals as a fu
 
 ### How it is computed
 
-```python title="src/cross_correlation.py -- crosscorrelation()"
+```python title="src/cross_correlation.py:crosscorrelation()"
 def crosscorrelation(neural, behavior, max_lag=50, normalize=True):
     neural = np.asarray(neural, dtype=float)
     behavior = np.asarray(behavior, dtype=float)
@@ -265,7 +265,7 @@ def crosscorrelation(neural, behavior, max_lag=50, normalize=True):
 ```
 
 1. Mean-subtraction ensures we measure covariance, not shared offset
-2. At positive lag $k$, we compare `neural[k:]` with `behavior[:n-k]` -- i.e., the neural signal is shifted forward in time
+2. At positive lag $k$, we compare `neural[k:]` with `behavior[:n-k]`; that is, the neural signal is shifted forward in time
 3. Normalized cross-correlation gives Pearson $r$ values in $[-1, 1]$
 4. The lag with the strongest absolute correlation
 
@@ -280,7 +280,7 @@ def crosscorrelation(neural, behavior, max_lag=50, normalize=True):
 
 ### Per-Unit Cross-Correlation
 
-```python title="src/cross_correlation.py -- population_crosscorrelation()"
+```python title="src/cross_correlation.py:population_crosscorrelation()"
 def population_crosscorrelation(pop_matrix, behavior,
                                 max_lag=50, bin_size=0.025):
     n_units = pop_matrix.shape[1]
@@ -307,7 +307,7 @@ The result is a DataFrame with one row per unit showing its peak correlation and
 
 Cross-correlation gives you a single summary over the whole session. But neural-behavior coupling can change over time (e.g., stronger during active behavior, weaker during rest). Sliding-window correlation reveals **when** the coupling is strongest.
 
-```python title="src/cross_correlation.py -- sliding_correlation()"
+```python title="src/cross_correlation.py:sliding_correlation()"
 def sliding_correlation(neural, behavior,
                         window_size=100, step=10):
     from scipy.stats import pearsonr
@@ -343,7 +343,7 @@ def sliding_correlation(neural, behavior,
 
 1. Skip windows with no variance (e.g., periods of silence)
 2. Pearson correlation within each window
-3. Time series of correlation values -- plot this to see coupling dynamics
+3. Time series of correlation values; plot this to see coupling dynamics
 
 !!! tip "Choosing window parameters"
     - `window_size=100` with 25 ms bins = 2.5 second windows
@@ -357,7 +357,7 @@ def sliding_correlation(neural, behavior,
 
 The encoding model asks: **given what the animal is doing, can we predict neural firing?** This tests whether behavioral variables carry information about neural activity.
 
-```python title="src/cross_correlation.py -- fit_encoding_model()"
+```python title="src/cross_correlation.py:fit_encoding_model()"
 def fit_encoding_model(behavior_features, neural_target,
                        model_type="poisson", n_folds=5,
                        lags=None):
@@ -409,11 +409,11 @@ def fit_encoding_model(behavior_features, neural_target,
 1. Adds time-lagged copies of each feature (e.g., `pose_speed_lag-2`, `pose_speed_lag-1`, `pose_speed_lag1`). This captures the fact that neural responses may lead or lag behavior.
 2. **Time-blocked CV**: each fold is a contiguous time block, not random. This respects temporal autocorrelation.
 3. `model_type="poisson"` uses `PoissonRegressor(alpha=0.01)` (for spike counts); `"ridge"` uses `Ridge(alpha=1.0)` (for firing rates)
-4. Feature importance is the absolute value of model coefficients -- tells you which behavioral features are most predictive of neural activity
+4. Feature importance is the absolute value of model coefficients, which tells you which behavioral features are most predictive of neural activity
 
 ### How lag features are added
 
-```python title="src/cross_correlation.py -- _add_lags()"
+```python title="src/cross_correlation.py:_add_lags()"
 def _add_lags(X, lags):
     dfs = [X]
     for lag in lags:
@@ -432,7 +432,7 @@ def _add_lags(X, lags):
 With `lags=[-2, -1, 0, 1, 2]` and 25 ms bins, the model sees behavior from 50 ms before to 50 ms after each time point. This covers both predictive and feedback relationships.
 
 !!! info "Interpreting encoding R^2"
-    - `R^2 > 0.1`: meaningful encoding -- behavior explains some variance in neural activity
+    - `R^2 > 0.1`: meaningful encoding; behavior explains some variance in neural activity
     - `R^2 > 0.3`: strong encoding
     - `R^2 < 0.01`: behavior and neural activity are largely independent at this time scale
 
@@ -442,7 +442,7 @@ With `lags=[-2, -1, 0, 1, 2]` and 25 ms bins, the model sees behavior from 50 ms
 
 The decoding model asks the complementary question: **given neural activity, can we predict what the animal is doing?**
 
-```python title="src/cross_correlation.py -- fit_decoding_model()"
+```python title="src/cross_correlation.py:fit_decoding_model()"
 def fit_decoding_model(pop_matrix, behavior_target,
                        n_folds=5, lags=None):
     X = pd.DataFrame(
@@ -522,7 +522,7 @@ $$
 
 If the full model is significantly better, the cause "Granger-causes" the effect.
 
-```python title="src/cross_correlation.py -- granger_test()"
+```python title="src/cross_correlation.py:granger_test()"
 def granger_test(cause, effect, max_lag=10):
     cause = np.asarray(cause, dtype=float)
     effect = np.asarray(effect, dtype=float)
@@ -577,7 +577,7 @@ def granger_test(cause, effect, max_lag=10):
 
 1. Build the lagged design matrix for the restricted model: columns are `effect[t-1], effect[t-2], ..., effect[t-K]`
 2. Full model has twice as many columns: the effect's own lags plus the cause's lags
-3. Sum of squared residuals for each model -- smaller = better fit
+3. Sum of squared residuals for each model (smaller = better fit)
 4. Degrees of freedom: `df1 = K` (extra parameters in full model), `df2 = N - 2K`
 5. F-test p-value: probability of seeing this improvement by chance
 6. `improvement = R^2_full - R^2_restricted`: how much additional variance is explained by the cause
@@ -605,7 +605,7 @@ Before running expensive models, it is useful to screen which units are selectiv
 
 ### `compute_selectivity_index()`
 
-```python title="src/neural_events.py -- compute_selectivity_index()"
+```python title="src/neural_events.py:compute_selectivity_index()"
 def compute_selectivity_index(spike_times, condition_a_times,
                               condition_b_times, window=(0.0, 0.5)):
     def _mean_rate(event_times):
@@ -647,7 +647,7 @@ def compute_selectivity_index(spike_times, condition_a_times,
 
 ### Batch screening
 
-```python title="src/neural_events.py -- screen_selective_units()"
+```python title="src/neural_events.py:screen_selective_units()"
 def screen_selective_units(spike_times_dict, condition_a_times,
                            condition_b_times, window=(0.0, 0.5),
                            p_threshold=0.05):
@@ -673,10 +673,10 @@ def screen_selective_units(spike_times_dict, condition_a_times,
     | |d'| | Interpretation |
     |------|----------------|
     | < 0.2 | Negligible selectivity |
-    | 0.2 -- 0.5 | Small selectivity |
-    | 0.5 -- 0.8 | Medium selectivity |
+    | 0.2 - 0.5 | Small selectivity |
+    | 0.5 - 0.8 | Medium selectivity |
     | > 0.8 | Large selectivity |
-    | > 2.0 | Extremely selective -- this unit strongly discriminates the two conditions |
+    | > 2.0 | Extremely selective; this unit strongly discriminates the two conditions |
 
 ---
 
@@ -684,7 +684,7 @@ def screen_selective_units(spike_times_dict, condition_a_times,
 
 The convenience function `compute_neural_behavior_alignment()` runs the complete analysis battery in a single call:
 
-```python title="src/cross_correlation.py -- compute_neural_behavior_alignment() (abbreviated)"
+```python title="src/cross_correlation.py:compute_neural_behavior_alignment() (abbreviated)"
 def compute_neural_behavior_alignment(
     spike_times_dict, behavior_df, trials=None,
     bin_size=0.025, behavior_col="pose_speed",
@@ -734,7 +734,7 @@ def compute_neural_behavior_alignment(
     return results
 ```
 
-1. `pop_rate` is the total population firing rate (sum across all units per bin) -- a single time series summarizing the population
+1. `pop_rate` is the total population firing rate (sum across all units per bin), a single time series summarizing the population
 
 ### Results Dictionary Structure
 
@@ -774,7 +774,7 @@ results = {
 
 ## Notebook 09: QC Checklist
 
-Notebook 09 consolidates all QC information into a final checklist. It does not run new analyses -- it reviews the outputs of all previous phases.
+Notebook 09 consolidates all QC information into a final checklist. It does not run new analyses; it reviews the outputs of all previous phases.
 
 ### What it checks
 

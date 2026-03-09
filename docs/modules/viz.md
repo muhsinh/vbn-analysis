@@ -1,7 +1,7 @@
 # viz
 
 Matplotlib visualization helpers for every analysis stage. Each function
-creates a ready-to-display figure -- they are designed to be called directly
+creates a ready-to-display figure; they are designed to be called directly
 from Jupyter notebook cells.
 
 **Source:** `src/viz.py`

@@ -405,7 +405,7 @@ Detailed reference for all 10 notebooks in the VBN Analysis Suite pipeline. For 
 | Input | Source | Required |
 |---|---|---|
 | `sessions.csv` | Project root | Yes |
-| All upstream artifacts | From Notebooks 00--08 | Generated during run |
+| All upstream artifacts | From Notebooks 00-08 | Generated during run |
 
 ### Outputs
 
@@ -419,7 +419,7 @@ Detailed reference for all 10 notebooks in the VBN Analysis Suite pipeline. For 
 ### Key Operations
 
 1. Loads session list
-2. For each session, runs the full pipeline (Notebooks 01--08 logic)
+2. For each session, runs the full pipeline (Notebooks 01-08 logic)
 3. Catches and logs errors per session (does not stop on failure)
 4. Builds the artifact registry
 5. Writes the run summary
@@ -438,11 +438,11 @@ Detailed reference for all 10 notebooks in the VBN Analysis Suite pipeline. For 
 
 ### Run Only Neural Analysis (No Video/Pose)
 
-Run notebooks 00, 01, 02, 03, 04 only. Skip 05--07. Notebook 08 can run without pose data but will lack pose-neural correlations.
+Run notebooks 00, 01, 02, 03, 04 only. Skip 05-07. Notebook 08 can run without pose data but will lack pose-neural correlations.
 
 ### Run Only Pose Estimation (No Neural)
 
-Run notebooks 00, 01, 05, 06, 07. Skip 02--04 and 08.
+Run notebooks 00, 01, 05, 06, 07. Skip 02-04 and 08.
 
 ### Run a Single Notebook After Config Change
 
@@ -474,7 +474,7 @@ If you change a configuration parameter (e.g., `BIN_SIZE_S`):
     ```
 
 2. Re-run Notebook 01 to discover the new session
-3. Run Notebooks 02--08 for the new session (Notebook 09 will process it automatically)
+3. Run Notebooks 02-08 for the new session (Notebook 09 will process it automatically)
 
 !!! tip "SDK Mode Auto-Download"
     In SDK mode, you only need to add the session ID. The AllenSDK will download the NWB file automatically:
@@ -510,12 +510,12 @@ Alternatively, use the autoreload extension for iterative development:
 | Notebook | Typical Time | Bottleneck |
 |---|---|---|
 | 00 | < 5 seconds | Config setup |
-| 01 | 10--60 seconds | NWB resolution (SDK may download) |
-| 02 | 30--120 seconds | NWB reading (file I/O) |
-| 03 | 10--30 seconds | NWB reading |
-| 04 | 10--30 seconds | NWB reading |
-| 05 | 1--30 minutes | S3 downloads (if needed) |
-| 06 | 1--5 minutes | Frame export (video I/O) |
-| 07 | 5--60 minutes | SLEAP inference (GPU-dependent) |
-| 08 | 1--10 minutes | Model fitting (CPU) |
+| 01 | 10-60 seconds | NWB resolution (SDK may download) |
+| 02 | 30-120 seconds | NWB reading (file I/O) |
+| 03 | 10-30 seconds | NWB reading |
+| 04 | 10-30 seconds | NWB reading |
+| 05 | 1-30 minutes | S3 downloads (if needed) |
+| 06 | 1-5 minutes | Frame export (video I/O) |
+| 07 | 5-60 minutes | SLEAP inference (GPU-dependent) |
+| 08 | 1-10 minutes | Model fitting (CPU) |
 | 09 | Sum of above | Processes all sessions |

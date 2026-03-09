@@ -22,7 +22,7 @@ Each phase feeds into the next. The pipeline is designed so you can start with a
 ### How Many Frames Do You Need?
 
 !!! tip "The ~150 Frame Reality"
-    For single-animal, single-camera VBN videos, **100--200 labeled frames** are enough to train a usable SLEAP model. You do not need thousands.
+    For single-animal, single-camera VBN videos, **100-200 labeled frames** are enough to train a usable SLEAP model. You do not need thousands.
 
     The key is frame **diversity**, not quantity. Prioritize frames that cover:
 
@@ -35,8 +35,8 @@ Each phase feeds into the next. The pipeline is designed so you can start with a
 
 Notebook 06 exports frames from your cached videos and prepares them for SLEAP labeling. The pipeline writes:
 
-- `outputs/labeling/sleap/{session_id}/{camera}/labels.csv` -- frame metadata
-- `outputs/labeling/sleap/{session_id}/{camera}/frames/*.png` -- individual frame images
+- `outputs/labeling/sleap/{session_id}/{camera}/labels.csv`: frame metadata
+- `outputs/labeling/sleap/{session_id}/{camera}/frames/*.png`: individual frame images
 
 The export function automatically samples frames spread across the entire session:
 
@@ -129,7 +129,7 @@ sleap-train \
     | Parameter | Recommended Value | Notes |
     |---|---|---|
     | `--default_single` | (flag) | Use single-animal model architecture |
-    | `--epochs` | 100--200 | More epochs = longer training but usually better |
+    | `--epochs` | 100-200 | More epochs = longer training but usually better |
     | `--batch_size` | 4 | Reduce to 2 if GPU runs out of memory |
     | `--run_path` | `pose_projects/trained_models/...` | Auto-discoverable location |
 
@@ -164,13 +164,13 @@ See the [SLEAP documentation](https://sleap.ai/guides/choosing-models.html) for 
 
 ### What to Expect During Training
 
-- Training 100 epochs on ~150 frames typically takes **15--45 minutes** on a modern GPU
-- Watch the validation loss -- it should decrease steadily for the first 50--80 epochs
+- Training 100 epochs on ~150 frames typically takes **15-45 minutes** on a modern GPU
+- Watch the validation loss; it should decrease steadily for the first 50-80 epochs
 - If validation loss plateaus or increases, the model is overfitting (try more labeled frames or data augmentation)
 - The trained model directory will contain:
-    - `training_config.json` -- the full config used
-    - `best_model.h5` -- model weights at lowest validation loss
-    - `training_log.csv` -- loss history
+    - `training_config.json`: the full config used
+    - `best_model.h5`: model weights at lowest validation loss
+    - `training_log.csv`: loss history
 
 !!! danger "GPU Memory"
     If you see `ResourceExhaustedError` or `OOM` errors during training:
@@ -186,9 +186,9 @@ See the [SLEAP documentation](https://sleap.ai/guides/choosing-models.html) for 
 
 The pipeline auto-discovers SLEAP models by searching these directories (in order):
 
-1. `pose_projects/` -- your local project directory
-2. `outputs/models/` -- pipeline output area
-3. `data/sleap_models/` -- shared/downloaded models
+1. `pose_projects/`: your local project directory
+2. `outputs/models/`: pipeline output area
+3. `data/sleap_models/`: shared/downloaded models
 
 A model is identified by any of:
 
@@ -297,7 +297,7 @@ The resulting parquet file contains:
 | `t` | float | Timestamp in NWB seconds |
 | `{keypoint}_x` | float | X coordinate of keypoint |
 | `{keypoint}_y` | float | Y coordinate of keypoint |
-| `{keypoint}_score` | float | Confidence score (0--1) |
+| `{keypoint}_score` | float | Confidence score (0-1) |
 | `instance_score` | float | Overall instance confidence |
 
 ---
@@ -338,7 +338,7 @@ print(f"Suggested frame indices: {frames_to_label}")
 ### Active Learning Workflow
 
 1. Run inference with your current model
-2. Call `suggest_frames_to_label()` to get 20--50 frame suggestions
+2. Call `suggest_frames_to_label()` to get 20-50 frame suggestions
 3. Open the predictions `.slp` file in the SLEAP GUI
 4. Navigate to the suggested frames and correct/add labels
 5. Save the updated `.slp` file
@@ -347,7 +347,7 @@ print(f"Suggested frame indices: {frames_to_label}")
 8. Repeat until confidence scores plateau
 
 !!! info "Diminishing Returns"
-    Typically, 2--3 active learning rounds (adding ~50 frames each time) bring you to ~95% of achievable accuracy. Beyond ~300--400 total labeled frames, improvements become marginal for single-animal tracking.
+    Typically, 2-3 active learning rounds (adding ~50 frames each time) bring you to ~95% of achievable accuracy. Beyond ~300-400 total labeled frames, improvements become marginal for single-animal tracking.
 
 ---
 

@@ -17,7 +17,7 @@ CANONICAL_TIMEBASE: str = "nwb_seconds"
 ```
 
 The canonical time reference for all artifacts in the pipeline. All `t`
-columns are in **NWB seconds** -- the same clock used by the Allen Brain
+columns are in **NWB seconds**, the same clock used by the Allen Brain
 Observatory NWB files. This string is embedded in every Parquet and NPZ
 artifact's metadata.
 

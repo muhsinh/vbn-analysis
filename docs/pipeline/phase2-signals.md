@@ -8,7 +8,7 @@ Phase 2 spans **Notebooks 02-04** and extracts three classes of signals from NWB
 
 Every extraction begins with `open_nwb_handle()`, a context manager that transparently handles three scenarios:
 
-```python title="src/io_nwb.py -- open_nwb_handle()"
+```python title="src/io_nwb.py:open_nwb_handle()"
 @contextlib.contextmanager
 def open_nwb_handle(nwb_path, mock_mode=False):
     if mock_mode or nwb_path is None or not Path(nwb_path).exists():
@@ -31,7 +31,7 @@ def open_nwb_handle(nwb_path, mock_mode=False):
 !!! info "The mock NWB object"
     When `mock_mode=True` or the NWB file is missing, the pipeline yields a `MockNWB` instance:
 
-    ```python title="src/io_nwb.py -- _mock_nwb()"
+    ```python title="src/io_nwb.py:_mock_nwb()"
     class MockNWB:
         def __init__(self):
             self.units = pd.DataFrame({
@@ -55,13 +55,13 @@ def open_nwb_handle(nwb_path, mock_mode=False):
 
 ---
 
-## Notebook 02: Neural Data -- Spikes and Events
+## Notebook 02: Neural Data (Spikes and Events)
 
 ### `extract_units_and_spikes()`
 
 This function converts the NWB `units` table into two outputs: a metadata DataFrame and a dictionary of spike time arrays.
 
-```python title="src/io_nwb.py -- extract_units_and_spikes()"
+```python title="src/io_nwb.py:extract_units_and_spikes()"
 def extract_units_and_spikes(nwb):
     if nwb is None or not hasattr(nwb, "units") or nwb.units is None:
         return None, None
@@ -111,7 +111,7 @@ spike_times = {
 
 ### How the `SessionBundle` orchestrates loading
 
-```python title="src/io_sessions.py -- SessionBundle.load_spikes()"
+```python title="src/io_sessions.py:SessionBundle.load_spikes()"
 def load_spikes(self):
     cfg = get_config()
     outputs_dir = cfg.outputs_dir / "neural"
@@ -148,7 +148,7 @@ def load_spikes(self):
 
 ### Saving with timebase metadata
 
-```python title="src/io_nwb.py -- save_units_and_spikes()"
+```python title="src/io_nwb.py:save_units_and_spikes()"
 def save_units_and_spikes(units, spikes, units_path, spikes_path,
                           session_id, alignment_method):
     provenance = _provenance(session_id, alignment_method)
@@ -183,7 +183,7 @@ def save_units_and_spikes(units, spikes, units_path, spikes_path,
 
 Extracts the NWB trials table and normalizes column names:
 
-```python title="src/io_nwb.py -- extract_trials()"
+```python title="src/io_nwb.py:extract_trials()"
 def extract_trials(nwb):
     if nwb is None or not hasattr(nwb, "trials") or nwb.trials is None:
         return None
@@ -212,7 +212,7 @@ def extract_trials(nwb):
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `t` | `float64` | Trial start time (NWB seconds) -- used for PETH alignment |
+| `t` | `float64` | Trial start time (NWB seconds), used for PETH alignment |
 | `t_start` | `float64` | Trial start time |
 | `t_end` | `float64` | Trial end time |
 | `trial_type` | `str` | `"go"`, `"no-go"`, `"catch"`, etc. |
@@ -224,7 +224,7 @@ def extract_trials(nwb):
 
 Extracts continuous behavior signals from the NWB `processing["behavior"]` module:
 
-```python title="src/io_nwb.py -- extract_behavior_events()"
+```python title="src/io_nwb.py:extract_behavior_events()"
 def extract_behavior_events(nwb):
     if nwb is None:
         return None
@@ -277,7 +277,7 @@ def extract_behavior_events(nwb):
 
 Produces a compact task-feature table for downstream modeling:
 
-```python title="src/features_task.py -- derive_task_features()"
+```python title="src/features_task.py:derive_task_features()"
 def derive_task_features(trials, events):
     if trials is None or trials.empty:
         return None
@@ -312,7 +312,7 @@ def derive_task_features(trials, events):
 
 Extracts raw eye tracking data from the NWB `processing["eye_tracking"]` module:
 
-```python title="src/io_nwb.py -- extract_eye_tracking()"
+```python title="src/io_nwb.py:extract_eye_tracking()"
 def extract_eye_tracking(nwb):
     if nwb is None:
         return None
@@ -337,13 +337,13 @@ def extract_eye_tracking(nwb):
     return None
 ```
 
-1. Returns the **first** successfully parsed data interface -- typically the pupil area time series
+1. Returns the **first** successfully parsed data interface, typically the pupil area time series
 
 ### `derive_eye_features()`
 
 Computes three derived features from the raw eye tracking signal:
 
-```python title="src/features_eye.py -- derive_eye_features()"
+```python title="src/features_eye.py:derive_eye_features()"
 def derive_eye_features(eye_df):
     if eye_df is None or eye_df.empty:
         return None
@@ -374,7 +374,7 @@ def derive_eye_features(eye_df):
 1. Uses the first non-time column as the primary signal (typically pupil area in pixels^2)
 2. Raw pupil area, renamed for consistency
 3. Z-scored pupil area: zero-mean, unit-variance normalization (epsilon avoids division by zero)
-4. Instantaneous pupil velocity via `np.gradient` -- the rate of change of pupil area with respect to time
+4. Instantaneous pupil velocity via `np.gradient`, capturing the rate of change of pupil area with respect to time
 
 ### Mathematical details
 
@@ -405,7 +405,7 @@ computed via second-order central differences using `np.gradient`.
 
 ### How `SessionBundle.load_eye_features()` works
 
-```python title="src/io_sessions.py -- SessionBundle.load_eye_features()"
+```python title="src/io_sessions.py:SessionBundle.load_eye_features()"
 def load_eye_features(self):
     cfg = get_config()
     outputs_dir = cfg.outputs_dir / "eye"
@@ -448,7 +448,7 @@ def load_eye_features(self):
 
 Every artifact written in Phase 2 goes through `write_parquet_with_timebase()`, which does three things:
 
-```python title="src/timebase.py -- write_parquet_with_timebase()"
+```python title="src/timebase.py:write_parquet_with_timebase()"
 def write_parquet_with_timebase(df, path, timebase="nwb_seconds",
                                 provenance=None, required_columns=None):
     path.parent.mkdir(parents=True, exist_ok=True)

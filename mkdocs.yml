@@ -6,18 +6,22 @@ repo_name: muhsinh/vbn-analysis
 
 theme:
   name: material
+  custom_dir: overrides
+  font:
+    text: Inter
+    code: JetBrains Mono
   palette:
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
-        icon: material/brightness-7
+        icon: material/weather-night
         name: Switch to dark mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
-        icon: material/brightness-4
+        icon: material/weather-sunny
         name: Switch to light mode
   features:
     - navigation.tabs
@@ -26,6 +30,9 @@ theme:
     - navigation.path
     - navigation.top
     - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - header.autohide
     - search.suggest
     - search.highlight
     - content.code.copy
@@ -40,7 +47,11 @@ plugins:
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -94,6 +105,12 @@ nav:
     - Artifacts: reference/artifacts.md
     - Timebase Contract: reference/timebase.md
     - Notebook Map: reference/notebook-map.md
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
 
 extra:
   social:

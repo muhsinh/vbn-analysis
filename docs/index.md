@@ -1,106 +1,181 @@
+---
+hero: true
+hide:
+  - navigation
+  - toc
+---
+
 # VBN Analysis Suite
 
-**A reproducible, notebook-driven analysis pipeline for the Allen Institute Visual Behavior Neuropixels dataset.**
+<div class="vbn-pipeline vbn-animate" markdown>
+<div class="vbn-pipeline-node phase-1" data-href="pipeline/phase1-setup/" markdown>
+<div class="vbn-pipeline-icon">1</div>
+<div class="vbn-pipeline-label">Setup & Discovery</div>
+<div class="vbn-pipeline-notebooks">NB 00, 01</div>
+<div class="vbn-pipeline-summary">Environment config, session inventory, modality flags</div>
+</div>
+<div class="vbn-pipeline-node phase-2" data-href="pipeline/phase2-signals/" markdown>
+<div class="vbn-pipeline-icon">2</div>
+<div class="vbn-pipeline-label">Signal Extraction</div>
+<div class="vbn-pipeline-notebooks">NB 02, 03, 04</div>
+<div class="vbn-pipeline-summary">Neural spikes, behavioral trials, eye tracking QC</div>
+</div>
+<div class="vbn-pipeline-node phase-3" data-href="pipeline/phase3-video-pose/" markdown>
+<div class="vbn-pipeline-icon">3</div>
+<div class="vbn-pipeline-label">Video & Pose</div>
+<div class="vbn-pipeline-notebooks">NB 05, 06, 07</div>
+<div class="vbn-pipeline-summary">S3 video download, SLEAP pose estimation, feature engineering</div>
+</div>
+<div class="vbn-pipeline-node phase-4" data-href="pipeline/phase4-correlation/" markdown>
+<div class="vbn-pipeline-icon">4</div>
+<div class="vbn-pipeline-label">Correlation & QC</div>
+<div class="vbn-pipeline-notebooks">NB 08, 09</div>
+<div class="vbn-pipeline-summary">Neural-behavior fusion, 6 analyses, end-to-end QC</div>
+</div>
+</div>
 
 ---
 
-## The Core Question
+## What It Does
 
-> **Do changes in behavior align with changes in neural activity?**
-
-The VBN Analysis Suite takes Neuropixels recordings of mice performing a visual change-detection task and builds a complete, time-aligned bridge between neural firing and behavioral signals --- from raw NWB files all the way to Granger causality tests that reveal which leads: brain or behavior.
-
-Every artifact shares a single canonical timebase (`nwb_seconds`), so you never have to worry about clock drift, frame-rate mismatches, or misaligned modalities.
-
----
-
-## Pipeline at a Glance
-
-```
-Phase 1                Phase 2                Phase 3                Phase 4
-Setup & Discovery      Signal Extraction      Video & Pose           Neural-Behavior
-                                                                     Correlation
-+-----------------+    +-----------------+    +-----------------+    +-----------------+
-| NB 00  Config   | -> | NB 02  Spikes   | -> | NB 05  Video IO | -> | NB 08  Fusion   |
-| NB 01  Sessions |    | NB 03  Behavior |    | NB 06  Pose     |    |   & Modeling     |
-|                 |    | NB 04  Eye QC   |    |   Setup (SLEAP) |    | NB 09  End-to-  |
-|                 |    |                 |    | NB 07  Pose     |    |   End & QC       |
-|                 |    |                 |    |   Features      |    |                 |
-+-----------------+    +-----------------+    +-----------------+    +-----------------+
-```
-
-| Phase | Notebooks | What happens |
-|-------|-----------|-------------|
-| **1 -- Setup & Discovery** | `00`, `01` | Environment validation, session inventory, modality flags |
-| **2 -- Signal Extraction** | `02`, `03`, `04` | Neural spikes/units, behavioral trials/events, eye tracking QC |
-| **3 -- Video & Pose** | `05`, `06`, `07` | Video asset download, frame timebase, SLEAP pose estimation, feature engineering |
-| **4 -- Correlation & QC** | `08`, `09` | Neural-behavior fusion, 6 correlation analyses, end-to-end QC checklist |
-
----
-
-## Key Features
+<div class="vbn-features vbn-animate" markdown>
+<div class="vbn-feature-card" markdown>
+<span class="vbn-feature-icon">&#x1f9ec;</span>
 
 ### Automated SLEAP Inference
 
-Label a small set of frames (~100--200), train a model, and the pipeline runs batch inference on every cached video automatically. Active learning suggests which frames to label next for maximum model improvement.
+Label ~100-200 frames, train a model, and the pipeline runs batch inference on every cached video. Active learning suggests which frames to label next.
 
-### Rich Pose Feature Engineering
+</div>
+<div class="vbn-feature-card" markdown>
+<span class="vbn-feature-icon">&#x1f4ca;</span>
 
-From raw keypoints the pipeline derives:
+### Rich Pose Features
 
-- Per-keypoint **velocity** and **acceleration**
-- **Body length** (stretch/posture proxy)
-- **Head angle** and angular velocity
-- **Inter-keypoint distances** (adjacent pairs)
-- **Pose speed** (mean across keypoints)
-- **Stillness detection** (percentile-based threshold)
-- **Behavioral motifs** (k-means or HMM clustering)
+From raw keypoints: velocity, acceleration, body length, head angle, inter-keypoint distances, pose speed, stillness detection, and behavioral motifs.
+
+</div>
+<div class="vbn-feature-card" markdown>
+<span class="vbn-feature-icon">&#x1f50d;</span>
 
 ### Six Correlation Analyses
 
-| Analysis | Question it answers |
-|----------|-------------------|
-| **Peri-Event Time Histograms (PETHs)** | How do firing rates change around behavioral events? |
-| **Time-Lagged Cross-Correlation** | What is the temporal lag between neural and behavioral signals? |
-| **Sliding-Window Correlation** | *When* during the session is neural-behavior coupling strongest? |
-| **Encoding Model** (behavior --> neural) | Can behavior predict neural firing? |
-| **Decoding Model** (neural --> behavior) | Can neural activity predict behavior? |
-| **Granger Causality** | Does neural activity *cause* behavior changes, or vice versa? |
+PETHs, time-lagged cross-correlation, sliding-window correlation, encoding models, decoding models, and Granger causality. All time-blocked cross-validated.
 
-All analyses use **time-blocked cross-validation** and support **lagged features**.
+</div>
+<div class="vbn-feature-card" markdown>
+<span class="vbn-feature-icon">&#x23f1;&#xfe0f;</span>
 
-### Timebase Guarantee
+### One Canonical Timebase
 
-Every exported artifact carries:
+Every artifact uses NWB seconds. No clock drift, no frame-rate mismatches. Spike times, trials, eye tracking, video frames, and pose all share one clock.
 
-- A `t` column in **NWB seconds**
-- A sidecar `.meta.json` with `timebase`, `session_id`, `code_version`, `created_at`, and `alignment_method`
-
-No clock drift. No frame-rate mismatches. One timebase to rule them all.
+</div>
+</div>
 
 ---
 
-## Documentation Map
+## Six Analyses, One Question
 
-| Section | What you will find |
-|---------|-------------------|
-| [Getting Started](getting-started/index.md) | Installation, quickstart, configuration reference |
-| [Installation](getting-started/installation.md) | Conda/pip setup, SLEAP, AllenSDK, system requirements |
-| [Quickstart](getting-started/quickstart.md) | Run your first session end-to-end in 15 minutes |
-| [Configuration](getting-started/configuration.md) | Every environment variable, Config fields, provenance tracking |
+> **Do changes in behavior align with changes in neural activity?**
+
+<div class="vbn-analysis-grid vbn-animate" markdown>
+<div class="vbn-analysis-card" markdown>
+
+#### Peri-Event Time Histograms
+
+How do firing rates change around behavioral events?
+
+</div>
+<div class="vbn-analysis-card" markdown>
+
+#### Time-Lagged Cross-Correlation
+
+What is the temporal lag between neural and behavioral signals?
+
+</div>
+<div class="vbn-analysis-card" markdown>
+
+#### Sliding-Window Correlation
+
+When during the session is neural-behavior coupling strongest?
+
+</div>
+<div class="vbn-analysis-card" markdown>
+
+#### Encoding Model
+
+Can behavior predict neural firing? (behavior &rarr; neural)
+
+</div>
+<div class="vbn-analysis-card" markdown>
+
+#### Decoding Model
+
+Can neural activity predict behavior? (neural &rarr; behavior)
+
+</div>
+<div class="vbn-analysis-card" markdown>
+
+#### Granger Causality
+
+Does neural activity *cause* behavior changes, or vice versa?
+
+</div>
+</div>
 
 ---
 
-## What You Will Need
+## Navigate the Docs
 
-!!! info "Prerequisites"
+<div class="vbn-nav-cards vbn-animate" markdown>
+<a href="getting-started/" class="vbn-nav-card" markdown>
+<div class="vbn-nav-card-title">Getting Started</div>
+<div class="vbn-nav-card-desc">Installation, quickstart, configuration reference</div>
+</a>
+<a href="pipeline/" class="vbn-nav-card" markdown>
+<div class="vbn-nav-card-title">Pipeline</div>
+<div class="vbn-nav-card-desc">Phase-by-phase walkthrough with code snippets</div>
+</a>
+<a href="modules/" class="vbn-nav-card" markdown>
+<div class="vbn-nav-card-title">Modules</div>
+<div class="vbn-nav-card-desc">API reference for all 14 source modules</div>
+</a>
+<a href="guides/" class="vbn-nav-card" markdown>
+<div class="vbn-nav-card-title">Guides</div>
+<div class="vbn-nav-card-desc">SLEAP workflow, correlation interpretation, troubleshooting</div>
+</a>
+</div>
 
-    Before you begin, make sure you have the following:
+---
+
+## Requirements at a Glance
+
+<div class="vbn-specs vbn-animate" markdown>
+<div class="vbn-spec" markdown>
+<div class="vbn-spec-label">Python</div>
+<div class="vbn-spec-value">3.10</div>
+</div>
+<div class="vbn-spec" markdown>
+<div class="vbn-spec-label">RAM</div>
+<div class="vbn-spec-value">16 GB min / 32 GB recommended</div>
+</div>
+<div class="vbn-spec" markdown>
+<div class="vbn-spec-label">Disk</div>
+<div class="vbn-spec-value">50-150 GB per session</div>
+</div>
+<div class="vbn-spec" markdown>
+<div class="vbn-spec-label">GPU</div>
+<div class="vbn-spec-value">Optional (CUDA for SLEAP)</div>
+</div>
+</div>
+
+??? info "Full prerequisites list"
 
     **Data**
 
     - Access to the [Allen Institute Visual Behavior Neuropixels dataset](https://portal.brain-map.org/) (SDK mode downloads automatically, or provide local NWB files in manual mode)
-    - Approximately **50--150 GB** of free disk space per session (NWB + video + pose outputs)
+    - Approximately **50-150 GB** of free disk space per session (NWB + video + pose outputs)
 
     **Compute**
 
@@ -111,14 +186,8 @@ No clock drift. No frame-rate mismatches. One timebase to rule them all.
 
     **Software**
 
-    - Python 3.10
-    - Conda (Miniconda or Mambaforge recommended)
-    - Git
-    - JupyterLab or Jupyter Notebook
-
-!!! warning "Disk Space"
-
-    A single VBN session with all three camera videos can consume 30--50 GB. If you plan to analyze multiple sessions, ensure you have several hundred GB available or configure `VIDEO_SOURCE=local` to skip S3 downloads.
+    - Python 3.10 with Conda (Miniconda or Mambaforge recommended)
+    - Git and JupyterLab
 
 ---
 
@@ -166,10 +235,3 @@ outputs/
   cache/           # Intermediate computation cache (joblib)
   labeling/        # SLEAP labeling exports (frames + labels.csv)
 ```
-
----
-
-<div style="text-align: center; margin-top: 2em;">
-<strong>Ready to get started?</strong><br>
-Head to the <a href="getting-started/installation.md">Installation Guide</a> or jump straight to the <a href="getting-started/quickstart.md">Quickstart</a>.
-</div>

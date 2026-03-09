@@ -201,7 +201,7 @@ def write_config_snapshot(path: Path | None = None) -> Path
 ```
 
 Write a JSON snapshot of the current configuration to disk. Useful for
-reproducibility -- embed the config in every experiment run.
+reproducibility; embed the config in every experiment run.
 
 #### Parameters
 

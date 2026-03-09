@@ -121,14 +121,14 @@ Alternatively, run each notebook individually for more control:
 | Order | Notebook | Phase | Approx. time |
 |-------|----------|-------|---------------|
 | 1 | `00_Setup_and_Configuration` | Setup | < 1 min |
-| 2 | `01_Session_Discovery_and_Metadata` | Setup | 1--5 min (SDK download) |
-| 3 | `02_Neural_Data_Spikes_and_Events` | Extraction | 2--10 min |
-| 4 | `03_Behavior_and_Task_Alignment` | Extraction | 1--3 min |
-| 5 | `04_Eye_Tracking_QC_and_Features` | Extraction | 1--3 min |
-| 6 | `05_Video_IO_and_Frame_Timebase` | Video | 5--30 min (S3 download) |
-| 7 | `06_Pose_Estimation_Setup_SLEAP_or_DLC` | Pose | 2--5 min |
-| 8 | `07_Pose_to_Motifs_Feature_Engineering` | Pose | 5--60 min (SLEAP inference) |
-| 9 | `08_Neural_Behavior_Fusion_and_Modeling` | Correlation | 5--15 min |
+| 2 | `01_Session_Discovery_and_Metadata` | Setup | 1-5 min (SDK download) |
+| 3 | `02_Neural_Data_Spikes_and_Events` | Extraction | 2-10 min |
+| 4 | `03_Behavior_and_Task_Alignment` | Extraction | 1-3 min |
+| 5 | `04_Eye_Tracking_QC_and_Features` | Extraction | 1-3 min |
+| 6 | `05_Video_IO_and_Frame_Timebase` | Video | 5-30 min (S3 download) |
+| 7 | `06_Pose_Estimation_Setup_SLEAP_or_DLC` | Pose | 2-5 min |
+| 8 | `07_Pose_to_Motifs_Feature_Engineering` | Pose | 5-60 min (SLEAP inference) |
+| 9 | `08_Neural_Behavior_Fusion_and_Modeling` | Correlation | 5-15 min |
 
 ---
 

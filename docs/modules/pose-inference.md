@@ -45,9 +45,9 @@ Find trained SLEAP models on disk by scanning standard directories.
 
 **Discovery patterns:**
 
-1. **Directory models** -- contains `training_config.json`.
-2. **Package models** -- `.zip` or `.pkg.slp` files.
-3. **Weight files** -- `.h5` or `.keras` files not already covered by a directory model.
+1. **Directory models**: contains `training_config.json`.
+2. **Package models**: `.zip` or `.pkg.slp` files.
+3. **Weight files**: `.h5` or `.keras` files not already covered by a directory model.
 
 **Example:**
 

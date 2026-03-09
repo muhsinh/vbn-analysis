@@ -17,7 +17,7 @@ This guide walks you through setting up the VBN Analysis Suite from scratch. The
 
 !!! warning "Disk space is the most common bottleneck"
 
-    A single VBN session with all three camera videos (eye, face, side) can consume 30--50 GB. Plan accordingly if you intend to analyze multiple sessions. You can reduce disk usage by setting `VIDEO_SOURCE=local` to skip S3 video downloads.
+    A single VBN session with all three camera videos (eye, face, side) can consume 30-50 GB. Plan accordingly if you intend to analyze multiple sessions. You can reduce disk usage by setting `VIDEO_SOURCE=local` to skip S3 video downloads.
 
 ---
 
@@ -85,7 +85,7 @@ pip install python-dotenv>=1.0.0 ipykernel jupyterlab
 
     If pip tries to **compile NumPy from source** (you will see a long build with C compiler output), it means no pre-built wheel is available for your platform. Solutions:
 
-    1. **Use conda-forge** (strongly recommended) --- it always has wheels.
+    1. **Use conda-forge** (strongly recommended). It always has wheels.
     2. Pin a NumPy version that has wheels for your platform: `pip install numpy==1.24.4`
     3. Install `openblas` or `mkl` system libraries first, then retry.
 
@@ -95,7 +95,7 @@ pip install python-dotenv>=1.0.0 ipykernel jupyterlab
 
 ## Step 4: Install SLEAP
 
-SLEAP is required for automated pose estimation (Notebooks 06--07). It has its own dependency tree, so install it carefully.
+SLEAP is required for automated pose estimation (Notebooks 06-07). It has its own dependency tree, so install it carefully.
 
 === "conda (recommended)"
 
@@ -126,7 +126,7 @@ SLEAP is required for automated pose estimation (Notebooks 06--07). It has its o
 
 !!! info "SLEAP is optional for initial exploration"
 
-    You can run Notebooks 00--05 without SLEAP. The pose estimation notebooks (06--07) will fail gracefully if SLEAP is not installed, and Notebook 08 can work with pre-existing pose predictions in `.parquet` format.
+    You can run Notebooks 00-05 without SLEAP. The pose estimation notebooks (06-07) will fail gracefully if SLEAP is not installed, and Notebook 08 can work with pre-existing pose predictions in `.parquet` format.
 
 ---
 
@@ -253,7 +253,7 @@ python verify_install.py
 
 !!! tip "Expected output"
 
-    All core packages and VBN src modules should pass. SLEAP may fail if not installed --- that is acceptable for Notebooks 00--05.
+    All core packages and VBN src modules should pass. SLEAP may fail if not installed. That's fine for Notebooks 00-05.
 
 ---
 

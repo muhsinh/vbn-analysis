@@ -10,7 +10,7 @@ The Visual Behavior Neuropixels dataset contains recordings from mice performing
 
 | Data Type | Format | Typical Size | Source |
 |---|---|---|---|
-| Neural data (spikes, units, LFP) | NWB / HDF5 | 1--5 GB | AllenSDK or direct NWB |
+| Neural data (spikes, units, LFP) | NWB / HDF5 | 1-5 GB | AllenSDK or direct NWB |
 | Trial/behavior events | Inside NWB | -- | Extracted from NWB |
 | Eye tracking | Inside NWB | -- | Extracted from NWB |
 | Behavior videos | `.mp4` + `.npy` timestamps | 200 MB -- 2 GB per camera | S3 bucket |
@@ -189,13 +189,13 @@ s3://allen-brain-observatory/
 
 | Camera | Typical File Size | Notes |
 |---|---|---|
-| `eye.mp4` | 100--400 MB | Close-up, lower resolution |
-| `face.mp4` | 200--600 MB | Medium resolution |
-| `side.mp4` | 300--800 MB | Full body, highest resolution |
-| `*_timestamps.npy` | 1--5 MB | NumPy array of timestamps |
+| `eye.mp4` | 100-400 MB | Close-up, lower resolution |
+| `face.mp4` | 200-600 MB | Medium resolution |
+| `side.mp4` | 300-800 MB | Full body, highest resolution |
+| `*_timestamps.npy` | 1-5 MB | NumPy array of timestamps |
 | `*_metadata.json` | < 1 KB | Camera metadata |
 
-**Total per session**: approximately **0.6--1.8 GB** for all three cameras.
+**Total per session**: approximately **0.6-1.8 GB** for all three cameras.
 
 ### Configuration
 
@@ -258,7 +258,7 @@ This reduces download size by ~60%.
 export VIDEO_SOURCE="local"
 ```
 
-The pipeline will skip video-dependent notebooks (05--07) but neural and behavioral analyses (02--04, partial 08) will still work.
+The pipeline will skip video-dependent notebooks (05-07) but neural and behavioral analyses (02-04, partial 08) will still work.
 
 ### Strategy 3: Selective Session Processing
 

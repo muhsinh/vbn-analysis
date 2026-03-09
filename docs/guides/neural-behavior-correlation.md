@@ -8,7 +8,7 @@ This guide explains how to interpret the correlation analyses produced by Notebo
 
 > **Do changes in behavior align with changes in neural activity?**
 
-Notebook 08 answers this question using seven complementary analyses. Each tells you something different about the neural-behavior relationship. No single analysis is sufficient on its own -- you should look at all of them together to build a complete picture.
+Notebook 08 answers this question using seven complementary analyses. Each tells you something different about the neural-behavior relationship. No single analysis is sufficient on its own; you should look at all of them together to build a complete picture.
 
 ---
 
@@ -75,7 +75,7 @@ plot_population_peth(pop_peth, title="Population response to stimulus")
 !!! tip "Choosing the Right Events"
     The VBN dataset includes multiple event types. Try aligning to:
 
-    - **Stimulus onset**: `trials["t_start"]` -- when the visual stimulus changes
+    - **Stimulus onset**: `trials["t_start"]`, when the visual stimulus changes
     - **Lick times**: behavioral events from the NWB processing module
     - **Reward delivery**: filter trials where `rewarded == True`
 
@@ -145,8 +145,8 @@ The `peak_lag` value tells you the temporal relationship:
 | |peak_corr| | Interpretation |
 |---|---|
 | < 0.05 | No meaningful relationship |
-| 0.05 -- 0.15 | Weak relationship (common for single units) |
-| 0.15 -- 0.30 | Moderate relationship (typical for population rate) |
+| 0.05 - 0.15 | Weak relationship (common for single units) |
+| 0.15 - 0.30 | Moderate relationship (typical for population rate) |
 | > 0.30 | Strong relationship (notable finding) |
 
 !!! warning "Context Matters"
@@ -209,8 +209,8 @@ plot_sliding_correlation(slide, bin_size=0.025)
 The p-value plot (lower panel) shows which windows have statistically significant correlations (red dots, p < 0.05).
 
 !!! tip "Window Size Selection"
-    - **Small windows** (50--100 bins, 1--2.5 s): detect rapid changes in coupling, but noisier
-    - **Large windows** (200--500 bins, 5--12.5 s): smoother estimates, but may miss brief coupling events
+    - **Small windows** (50-100 bins, 1-2.5 s): detect rapid changes in coupling, but noisier
+    - **Large windows** (200-500 bins, 5-12.5 s): smoother estimates, but may miss brief coupling events
     - Start with 200 bins and adjust based on your session duration and event timing
 
 ---
@@ -366,9 +366,9 @@ Key metrics in the output:
 !!! tip "Choosing max_lag"
     `max_lag=10` at a bin size of 25 ms tests causal effects up to 250 ms. Adjust based on expected neural-behavior latencies:
 
-    - Motor commands: ~50--200 ms (max_lag=2--8)
-    - Sensory feedback: ~30--150 ms (max_lag=1--6)
-    - Cognitive/attentional: ~200--500 ms (max_lag=8--20)
+    - Motor commands: ~50-200 ms (max_lag=2-8)
+    - Sensory feedback: ~30-150 ms (max_lag=1-6)
+    - Cognitive/attentional: ~200-500 ms (max_lag=8-20)
 
 ---
 

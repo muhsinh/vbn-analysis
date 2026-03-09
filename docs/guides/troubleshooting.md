@@ -18,7 +18,7 @@ A comprehensive guide to diagnosing and fixing common issues with the VBN Analys
 conda install -c conda-forge numpy pandas scipy scikit-learn
 ```
 
-If you must use pip, ensure you are on a supported Python version (3.9--3.12) and platform:
+If you must use pip, ensure you are on a supported Python version (3.9-3.12) and platform:
 
 ```bash
 python -m pip install --only-binary=:all: numpy pandas
@@ -490,7 +490,7 @@ plt.rcParams["font.size"] = 11
 
 **Symptom**: Kernel crashes or `MemoryError` when opening NWB files.
 
-**Cause**: Some NWB files are 3--5 GB and loading them fully into memory can exceed available RAM.
+**Cause**: Some NWB files are 3-5 GB and loading them fully into memory can exceed available RAM.
 
 **Fix**:
 

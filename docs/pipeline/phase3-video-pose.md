@@ -10,7 +10,7 @@ Phase 3 spans **Notebooks 05-07** and covers the full journey from raw video fil
 
 The pipeline supports three video cameras per session: `eye`, `face`, and `side`. The `build_video_assets()` function is the central entry point that discovers, optionally downloads, and registers all video assets.
 
-```python title="src/io_video.py -- build_video_assets() (simplified)"
+```python title="src/io_video.py:build_video_assets() (simplified)"
 def build_video_assets(
     session_id,
     video_dir=None,
@@ -75,7 +75,7 @@ def build_video_assets(
 
 The pipeline searches multiple candidate directories to find existing video files:
 
-```python title="src/io_video.py -- _candidate_roots()"
+```python title="src/io_video.py:_candidate_roots()"
 def _candidate_roots(session_id, video_dir, cache_dir):
     roots = []
     if video_dir:
@@ -104,7 +104,7 @@ Within each root, it looks for files matching strict naming conventions:
 
 Timestamps can come in multiple formats:
 
-```python title="src/io_video.py -- load_timestamps()"
+```python title="src/io_video.py:load_timestamps()"
 def load_timestamps(path):
     if path.suffix.lower() == ".npy":
         return np.load(path)                       # (1)!
@@ -127,7 +127,7 @@ def load_timestamps(path):
 
 For each camera, `_compute_frame_metrics()` validates the timestamps and computes quality metrics:
 
-```python title="src/io_video.py -- _compute_frame_metrics() (core logic)"
+```python title="src/io_video.py:_compute_frame_metrics() (core logic)"
 ts = np.asarray(timestamps, dtype=float)
 finite = np.isfinite(ts)
 if not np.all(finite):
@@ -194,7 +194,7 @@ metrics["fps_est"] = 1.0 / float(np.median(diffs))  # (2)!
 
 Both `video_assets.parquet` and `frame_times.parquet` use upsert logic: when you re-run for a session, existing rows for that `(session_id, camera)` pair are replaced:
 
-```python title="src/io_video.py -- _upsert_assets()"
+```python title="src/io_video.py:_upsert_assets()"
 def _upsert_assets(new_rows, path):
     if path.exists():
         existing = pd.read_parquet(path)
@@ -217,7 +217,7 @@ def _upsert_assets(new_rows, path):
 
 Before you can train a pose model, you need labeled frames. The pipeline samples frames uniformly across the session:
 
-```python title="src/features_pose.py -- sample_frame_indices()"
+```python title="src/features_pose.py:sample_frame_indices()"
 def sample_frame_indices(frame_times, n_samples=50):
     if frame_times is None or frame_times.empty:
         return np.array([], dtype=int)
@@ -230,13 +230,13 @@ def sample_frame_indices(frame_times, n_samples=50):
     return np.unique(np.sort(sampled))
 ```
 
-1. `np.linspace` ensures uniform temporal coverage -- you get frames from the beginning, middle, and end of the session
+1. `np.linspace` ensures uniform temporal coverage, so you get frames from the beginning, middle, and end of the session
 
 ### Labeling Export: PNG Mode
 
 For SLEAP GUI labeling, the pipeline exports individual PNG frames:
 
-```python title="src/features_pose.py -- export_labeling_frames() (simplified)"
+```python title="src/features_pose.py:export_labeling_frames() (simplified)"
 def export_labeling_frames(video_path, frame_indices, output_dir,
                            frame_times, session_id, camera):
     import cv2
@@ -278,7 +278,7 @@ def export_labeling_frames(video_path, frame_indices, output_dir,
 
 For workflows that prefer a video file (e.g., SLEAP video import), the pipeline also supports MP4 export with optional simultaneous PNG extraction:
 
-```python title="src/features_pose.py -- export_labeling_video() (key logic)"
+```python title="src/features_pose.py:export_labeling_video() (key logic)"
 def export_labeling_video(video_path, frame_indices, output_dir,
                           frame_times, session_id, camera,
                           label_fps=30.0, write_pngs=False):
@@ -340,7 +340,7 @@ def export_labeling_video(video_path, frame_indices, output_dir,
 
 The pipeline can automatically find SLEAP prediction files in multiple formats:
 
-```python title="src/pose_inference.py -- auto_discover_sleap_csvs()"
+```python title="src/pose_inference.py:auto_discover_sleap_csvs()"
 def auto_discover_sleap_csvs(session_id=None):
     cfg = get_config()
     csvs = []
@@ -373,7 +373,7 @@ def auto_discover_sleap_csvs(session_id=None):
 
 ### SLEAP CSV to Parquet Conversion
 
-```python title="src/features_pose.py -- export_pose_predictions_from_sleap_csv()"
+```python title="src/features_pose.py:export_pose_predictions_from_sleap_csv()"
 def export_pose_predictions_from_sleap_csv(csv_path, session_id, camera,
                                             frame_times=None, output_path=None):
     df = pd.read_csv(csv_path)
@@ -419,7 +419,7 @@ For sessions where you have a trained model but no predictions yet, the pipeline
 
 #### Step 1: Model Discovery
 
-```python title="src/pose_inference.py -- discover_sleap_models()"
+```python title="src/pose_inference.py:discover_sleap_models()"
 def discover_sleap_models(search_dirs=None):
     cfg = get_config()
     if search_dirs is None:
@@ -462,7 +462,7 @@ def discover_sleap_models(search_dirs=None):
 
 #### Step 2: Batch Inference
 
-```python title="src/pose_inference.py -- run_batch_inference() (core loop)"
+```python title="src/pose_inference.py:run_batch_inference() (core loop)"
 def run_batch_inference(session_ids=None, cameras=None,
                         model_paths=None, batch_size=4,
                         skip_existing=True):
@@ -516,7 +516,7 @@ def run_batch_inference(session_ids=None, cameras=None,
 
 #### Step 3: SLP to Parquet Conversion
 
-```python title="src/pose_inference.py -- slp_to_parquet() (core logic)"
+```python title="src/pose_inference.py:slp_to_parquet() (core logic)"
 def slp_to_parquet(slp_path, session_id, camera,
                    output_path=None, confidence_threshold=0.0):
     import sleap
@@ -586,7 +586,7 @@ def slp_to_parquet(slp_path, session_id, camera,
 
 Before computing features, low-confidence detections can be filtered:
 
-```python title="src/features_pose.py -- filter_by_confidence()"
+```python title="src/features_pose.py:filter_by_confidence()"
 def filter_by_confidence(df, threshold=0.3, method="nan"):
     df = df.copy()
     keypoints = _find_keypoints(df)                    # (1)!
@@ -613,7 +613,7 @@ def filter_by_confidence(df, threshold=0.3, method="nan"):
 3. **Drop method**: removes entire rows where the mean confidence is below threshold
 
 !!! tip "Which filtering method to use"
-    - Use `method="nan"` (default) for feature extraction -- it preserves frames where most keypoints are good
+    - Use `method="nan"` (default) for feature extraction, as it preserves frames where most keypoints are good
     - Use `method="drop"` for visualization or when you need every keypoint to be valid
 
 ---
@@ -622,7 +622,7 @@ def filter_by_confidence(df, threshold=0.3, method="nan"):
 
 This is the core feature engineering function. It takes raw pose predictions and computes a comprehensive set of behavioral features:
 
-```python title="src/features_pose.py -- derive_pose_features()"
+```python title="src/features_pose.py:derive_pose_features()"
 def derive_pose_features(pose_df, confidence_threshold=0.0):
     if pose_df is None or pose_df.empty:
         return None
@@ -719,7 +719,7 @@ def derive_pose_features(pose_df, confidence_threshold=0.0):
 
 After initial inference, the pipeline can suggest which frames to label next for the biggest improvement:
 
-```python title="src/pose_inference.py -- suggest_frames_to_label()"
+```python title="src/pose_inference.py:suggest_frames_to_label()"
 def suggest_frames_to_label(slp_path, n_suggestions=20,
                             strategy="low_confidence"):
     import sleap
@@ -751,7 +751,7 @@ def suggest_frames_to_label(slp_path, n_suggestions=20,
 ```
 
 1. Sort frames by confidence, lowest first
-2. **Low-confidence strategy**: pick the N worst frames -- these are where the model struggles most
+2. **Low-confidence strategy**: pick the N worst frames, which are where the model struggles most
 3. **Spread strategy**: pick from the worst frames but spread evenly across the session to avoid labeling a cluster of similar-looking frames
 
 !!! info "Active learning loop"

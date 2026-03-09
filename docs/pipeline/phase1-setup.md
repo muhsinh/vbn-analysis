@@ -4,7 +4,7 @@ Phase 1 spans **Notebook 00** (environment bootstrap) and **Notebook 01** (sessi
 
 ---
 
-## Notebook 00 -- Configuration, Directories, and Dependencies
+## Notebook 00: Configuration, Directories, and Dependencies
 
 ### What happens step by step
 
@@ -12,7 +12,7 @@ Phase 1 spans **Notebook 00** (environment bootstrap) and **Notebook 01** (sessi
 
 The entire pipeline is controlled by a single `Config` object built from environment variables with sensible defaults:
 
-```python title="src/config.py -- Config dataclass (abbreviated)"
+```python title="src/config.py: Config dataclass (abbreviated)"
 @dataclass
 class Config:
     access_mode: str = "sdk"           # "sdk" | "manual"
@@ -44,7 +44,7 @@ class Config:
 
 The singleton is created lazily:
 
-```python title="src/config.py -- get_config()"
+```python title="src/config.py: get_config()"
 _CONFIG: Config | None = None
 
 def get_config() -> Config:
@@ -72,7 +72,7 @@ def get_config() -> Config:
 
 `Config.ensure_dirs()` creates the full directory tree:
 
-```python title="src/config.py -- ensure_dirs()"
+```python title="src/config.py: ensure_dirs()"
 def ensure_dirs(self) -> None:
     self.outputs_dir.mkdir(parents=True, exist_ok=True)
     self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -104,11 +104,11 @@ vbn-analysis/
 
 #### 3. Dependency check
 
-Notebook 00 typically imports key packages and reports versions. The pipeline is designed to run in **mock mode** when heavy dependencies like `pynwb` or `allensdk` are not installed -- the `open_nwb_handle` context manager falls back to synthetic data automatically.
+Notebook 00 typically imports key packages and reports versions. The pipeline is designed to run in **mock mode** when heavy dependencies like `pynwb` or `allensdk` are not installed; the `open_nwb_handle` context manager falls back to synthetic data automatically.
 
 #### 4. Write config snapshot
 
-```python title="src/config.py -- write_config_snapshot()"
+```python title="src/config.py: write_config_snapshot()"
 def write_config_snapshot(path: Path | None = None) -> Path:
     config = get_config()
     config.ensure_dirs()
@@ -138,7 +138,7 @@ The snapshot includes a `code_version` field that captures the current git commi
 
 ---
 
-## Notebook 01 -- Session Discovery and Metadata
+## Notebook 01: Session Discovery and Metadata
 
 ### What happens step by step
 
@@ -146,7 +146,7 @@ The snapshot includes a `code_version` field that captures the current git commi
 
 The function `load_sessions_csv()` implements a three-level fallback:
 
-```python title="src/io_sessions.py -- load_sessions_csv()"
+```python title="src/io_sessions.py:load_sessions_csv()"
 REQUIRED_SESSIONS_COLUMNS = ["session_id", "nwb_path", "video_dir", "notes"]
 
 def load_sessions_csv(
@@ -187,7 +187,7 @@ def load_sessions_csv(
 !!! info "Legacy `sessions.txt` migration"
     If you have a plain-text file with one session ID per line, the pipeline auto-converts it into a proper CSV:
 
-    ```python title="src/io_sessions.py -- generate_sessions_csv_from_txt()"
+    ```python title="src/io_sessions.py:generate_sessions_csv_from_txt()"
     def generate_sessions_csv_from_txt(txt_path, output_path):
         session_ids = []
         for line in txt_path.read_text().splitlines():
@@ -219,7 +219,7 @@ def load_sessions_csv(
 
 `_normalize_sessions_df()` ensures the required columns exist. If any are missing, they are added as empty strings and the CSV is re-written:
 
-```python title="src/io_sessions.py -- _normalize_sessions_df()"
+```python title="src/io_sessions.py:_normalize_sessions_df()"
 def _normalize_sessions_df(df, path):
     missing = [col for col in REQUIRED_SESSIONS_COLUMNS if col not in df.columns]
     if missing:
@@ -236,7 +236,7 @@ def _normalize_sessions_df(df, path):
 
 `SessionBundle` is the central orchestration object. Each session gets one bundle, and it provides lazy-loading methods for every data modality.
 
-```python title="src/io_sessions.py -- SessionBundle"
+```python title="src/io_sessions.py:SessionBundle"
 @dataclass
 class SessionBundle:
     session_id: int
@@ -278,7 +278,7 @@ Each method follows the same pattern: check for cached output on disk, and if mi
 
 This is the factory function that notebooks call to obtain a fully-initialized bundle:
 
-```python title="src/io_sessions.py -- get_session_bundle()"
+```python title="src/io_sessions.py:get_session_bundle()"
 def get_session_bundle(
     session_id: int,
     sessions_df: pd.DataFrame | None = None,
@@ -334,7 +334,7 @@ def get_session_bundle(
 
 ### NWB path resolution
 
-```python title="src/io_nwb.py -- resolve_nwb_path()"
+```python title="src/io_nwb.py:resolve_nwb_path()"
 def resolve_nwb_path(session_id, access_mode, nwb_path_override=None):
     if access_mode == "manual":
         return nwb_path_override               # (1)!
@@ -370,7 +370,7 @@ def resolve_nwb_path(session_id, access_mode, nwb_path_override=None):
 
 Once the NWB handle is open, `inspect_modalities()` probes for each data stream:
 
-```python title="src/io_nwb.py -- inspect_modalities()"
+```python title="src/io_nwb.py:inspect_modalities()"
 def inspect_modalities(nwb) -> Dict[str, bool]:
     modalities = {
         "spikes": False,
@@ -404,7 +404,7 @@ def inspect_modalities(nwb) -> Dict[str, bool]:
 
 For expensive intermediate computations that do not fit neatly into the per-modality artifact pattern, the pipeline provides a generic `cache_step()` function:
 
-```python title="src/io_sessions.py -- cache_step()"
+```python title="src/io_sessions.py:cache_step()"
 def cache_step(session_id, step, params, compute_fn):
     cache_path = _cache_path(session_id, step, params)
     if cache_path.exists():
@@ -416,7 +416,7 @@ def cache_step(session_id, step, params, compute_fn):
 
 The cache key is an MD5 hash of the parameters dict, ensuring that changing any parameter triggers a recomputation:
 
-```python title="src/io_sessions.py -- _cache_path()"
+```python title="src/io_sessions.py:_cache_path()"
 def _cache_path(session_id, step, params, ext="joblib"):
     cfg = get_config()
     cache_dir = cfg.cache_dir / f"session_{session_id}"
@@ -445,4 +445,4 @@ def _hash_params(params):
 | `config_snapshot.json` | `outputs/reports/` | JSON | Full configuration for reproducibility |
 | `sessions.csv` | Project root | CSV | Session registry with IDs and paths |
 
-Phase 1 does **not** extract any data from NWB files -- it only resolves paths and inspects which modalities are available. Extraction begins in [Phase 2](phase2-signals.md).
+Phase 1 does **not** extract any data from NWB files; it only resolves paths and inspects which modalities are available. Extraction begins in [Phase 2](phase2-signals.md).

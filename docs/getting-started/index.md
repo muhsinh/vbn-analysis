@@ -20,7 +20,7 @@ Welcome to the VBN Analysis Suite setup guide. This section walks you through ev
 
     ---
 
-    Run the pipeline end-to-end on a single session in under 15 minutes --- or use mock mode to test without any data.
+    Run the pipeline end-to-end on a single session in under 15 minutes, or use mock mode to test without any data.
 
     [:octicons-arrow-right-24: Quickstart](quickstart.md)
 
@@ -38,9 +38,9 @@ Welcome to the VBN Analysis Suite setup guide. This section walks you through ev
 
 ## Recommended Reading Order
 
-1. **Installation** -- get your environment running
-2. **Quickstart** -- run a test session (mock mode or real data)
-3. **Configuration** -- understand and customize every knob
+1. **Installation**: get your environment running
+2. **Quickstart**: run a test session (mock mode or real data)
+3. **Configuration**: understand and customize every knob
 
 !!! tip "Already comfortable with conda?"
 

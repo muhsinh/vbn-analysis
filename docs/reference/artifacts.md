@@ -147,7 +147,7 @@ QC flag values:
 | `t` | float | Timestamp (NWB seconds) |
 | `{keypoint}_x` | float | X coordinate (pixels) |
 | `{keypoint}_y` | float | Y coordinate (pixels) |
-| `{keypoint}_score` | float | Confidence score (0--1) |
+| `{keypoint}_score` | float | Confidence score (0-1) |
 | `instance_score` | float | Overall instance confidence |
 
 Keypoint names depend on the SLEAP skeleton definition. Common examples: `nose`, `left_ear`, `right_ear`, `neck`, `body_center`, `tail_base`, `tail_tip`.

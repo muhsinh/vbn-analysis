@@ -34,7 +34,7 @@ data corruption.
 
 !!! warning
     An array of length 0 or 1 returns `True` (vacuously monotonic). This
-    function does not check for NaN values -- ensure timestamps are finite
+    function does not check for NaN values; ensure timestamps are finite
     before calling.
 
 **Example:**

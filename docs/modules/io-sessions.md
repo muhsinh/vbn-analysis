@@ -32,7 +32,7 @@ def load_sessions_csv(
 ```
 
 Load the session manifest CSV. This is the starting point of every pipeline
-run -- it lists which sessions to process and where to find their data.
+run; it lists which sessions to process and where to find their data.
 
 #### Parameters
 

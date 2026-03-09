@@ -245,7 +245,7 @@ Controls how NWB files are located and loaded.
     ```
 
     **Pros**: No manual file management. Always gets the canonical file.
-    **Cons**: First run downloads large files (10--40 GB per session).
+    **Cons**: First run downloads large files (10-40 GB per session).
 
 === "manual"
 
@@ -263,7 +263,7 @@ Controls how NWB files are located and loaded.
 
 | Value | Description |
 |-------|-------------|
-| `sleap` | Use SLEAP for pose estimation. Notebooks 06--07 will look for `.slp` models and CSV exports. |
+| `sleap` | Use SLEAP for pose estimation. Notebooks 06-07 will look for `.slp` models and CSV exports. |
 | `dlc` | Use DeepLabCut. The feature extraction code works with either format. |
 
 ### `BIN_SIZE_S`
@@ -280,7 +280,7 @@ The temporal resolution for the fusion table. This is the bin width used when al
 
 !!! tip "Choosing a bin size"
 
-    The default of 25 ms (40 Hz) is a good balance between temporal resolution and statistical power. For fast neural dynamics, use 10 ms. For slow behavioral signals (e.g., pupil diameter), 50--100 ms is sufficient and reduces computational cost.
+    The default of 25 ms (40 Hz) is a good balance between temporal resolution and statistical power. For fast neural dynamics, use 10 ms. For slow behavioral signals (e.g., pupil diameter), 50-100 ms is sufficient and reduces computational cost.
 
 ### `MOCK_MODE`
 
@@ -293,7 +293,7 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y"}
 ```
 
-When enabled, all `io_nwb.open_nwb_handle()` calls return a mock NWB object with synthetic data. This cascades through the entire pipeline --- every modality gets plausible fake data.
+When enabled, all `io_nwb.open_nwb_handle()` calls return a mock NWB object with synthetic data. This cascades through the entire pipeline, so every modality gets plausible fake data.
 
 ### `VIDEO_SOURCE`
 
@@ -334,7 +334,7 @@ def make_model(name: str, task: str, **kwargs) -> Any:
 
 ## Provenance Tracking
 
-Every artifact written by the pipeline includes provenance metadata. This ensures full reproducibility --- you can always trace an output back to the code and data that produced it.
+Every artifact written by the pipeline includes provenance metadata. This ensures full reproducibility. You can always trace an output back to the code and data that produced it.
 
 ### `make_provenance()`
 
@@ -399,7 +399,7 @@ The sidecar contains:
 
 !!! info "Why sidecar files?"
 
-    Parquet metadata is embedded in the file schema, but not all tools can read it. The sidecar JSON provides tool-agnostic access to provenance information --- you can inspect it with `cat`, `jq`, or any JSON library.
+    Parquet metadata is embedded in the file schema, but not all tools can read it. The sidecar JSON provides tool-agnostic access to provenance information. You can inspect it with `cat`, `jq`, or any JSON library.
 
 ---
 
