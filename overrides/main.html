@@ -4,41 +4,20 @@
   {{ super() }}
   {% if page and page.meta and page.meta.hero %}
   <section class="vbn-hero">
-    <div class="vbn-hero-particles"></div>
     <div class="vbn-hero-content">
-      <div class="vbn-hero-badge">Neuroscience Research Toolkit</div>
       <h1 class="vbn-hero-title">VBN Analysis Suite</h1>
       <p class="vbn-hero-subtitle">
-        A reproducible pipeline for the Allen Institute Visual Behavior Neuropixels dataset.
-        From raw NWB files to neural-behavior correlation in one toolkit.
+        A reproducible notebook pipeline for the Allen Institute
+        Visual Behavior Neuropixels dataset. Extracts neural and behavioral
+        signals, runs pose estimation, and tests whether changes in behavior
+        align with changes in neural activity.
       </p>
-      <div class="vbn-hero-actions">
-        <a href="{{ 'getting-started/' | url }}" class="vbn-btn vbn-btn-primary">
-          Get Started
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </a>
-        <a href="{{ 'pipeline/' | url }}" class="vbn-btn vbn-btn-secondary">
-          View Pipeline
-        </a>
-      </div>
-      <div class="vbn-hero-stats">
-        <div class="vbn-stat">
-          <span class="vbn-stat-number">10</span>
-          <span class="vbn-stat-label">Notebooks</span>
-        </div>
-        <div class="vbn-stat">
-          <span class="vbn-stat-number">14</span>
-          <span class="vbn-stat-label">Modules</span>
-        </div>
-        <div class="vbn-stat">
-          <span class="vbn-stat-number">6</span>
-          <span class="vbn-stat-label">Analyses</span>
-        </div>
-        <div class="vbn-stat">
-          <span class="vbn-stat-number">1</span>
-          <span class="vbn-stat-label">Timebase</span>
-        </div>
-      </div>
+      <nav class="vbn-hero-links">
+        <a href="{{ 'getting-started/' | url }}">Get started</a>
+        <a href="{{ 'pipeline/' | url }}">Pipeline overview</a>
+        <a href="{{ 'modules/' | url }}">Module reference</a>
+        <a href="{{ 'guides/' | url }}">Guides</a>
+      </nav>
     </div>
   </section>
   {% endif %}
