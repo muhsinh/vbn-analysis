@@ -76,12 +76,12 @@ All analyses use time-blocked cross-validation. Every artifact shares a single N
 
 ## Requirements
 
-Python 3.10, conda, 16+ GB RAM, 50-150 GB disk per session. GPU optional (speeds up SLEAP). Works on macOS, Linux, and Windows (WSL2).
+| What | Minimum | Recommended |
+|------|---------|-------------|
+| **Python** | 3.10 | 3.10 (pinned) |
+| **RAM** | 16 GB | 32 GB |
+| **Disk** | 50 GB per session | 500+ GB for multiple sessions |
+| **GPU** | Not required | CUDA GPU (speeds up SLEAP) |
+| **OS** | macOS, Linux, Windows (WSL2) | macOS or Linux |
 
-??? info "Full details"
-
-    **Data**: Access to the [Allen Institute VBN dataset](https://portal.brain-map.org/). SDK mode downloads automatically, or provide local NWB files.
-
-    **Compute**: 4+ cores, 16 GB RAM minimum (32 recommended). CUDA GPU optional for SLEAP inference.
-
-    **Software**: Python 3.10, Conda (Miniconda or Mambaforge), Git, JupyterLab.
+You also need [Conda](https://docs.conda.io/en/latest/miniconda.html) (Miniconda or Mambaforge), Git, and JupyterLab. Data comes from the [Allen Institute VBN dataset](https://portal.brain-map.org/) - the SDK downloads it automatically, or you can provide local NWB files.
