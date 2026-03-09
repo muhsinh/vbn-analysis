@@ -6,20 +6,11 @@ Technical reference documentation for the VBN Analysis Suite. These pages descri
 
 ## Reference Pages
 
-<div class="vbn-nav-cards vbn-animate" markdown>
-<a href="artifacts/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Artifacts</div>
-<div class="vbn-nav-card-desc">Every file produced by the pipeline: format, schema, location, and how to read each one programmatically.</div>
-</a>
-<a href="timebase/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Timebase Contract</div>
-<div class="vbn-nav-card-desc">The nwb_seconds canonical timebase: what it means, how each data source gets aligned, and how to verify alignment.</div>
-</a>
-<a href="notebook-map/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Notebook Map</div>
-<div class="vbn-nav-card-desc">Detailed reference for all 10 notebooks (00-09): purpose, inputs, outputs, configuration options, and the dependency graph.</div>
-</a>
-</div>
+<ul class="vbn-links" markdown>
+<li markdown>[Artifacts](artifacts.md) <span class="vbn-link-desc">- every file the pipeline produces: format, schema, location</span></li>
+<li markdown>[Timebase Contract](timebase.md) <span class="vbn-link-desc">- the nwb_seconds canonical timebase and how alignment works</span></li>
+<li markdown>[Notebook Map](notebook-map.md) <span class="vbn-link-desc">- inputs, outputs, config options, and dependencies for all 10 notebooks</span></li>
+</ul>
 
 ---
 

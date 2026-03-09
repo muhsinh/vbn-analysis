@@ -138,21 +138,9 @@ def cache_step(session_id, step, params, compute_fn):
 
 ## Next Steps
 
-<div class="vbn-nav-cards" markdown>
-<a href="phase1-setup/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Phase 1: Setup & Discovery</div>
-<div class="vbn-nav-card-desc">Configuration, session discovery, the SessionBundle dataclass</div>
-</a>
-<a href="phase2-signals/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Phase 2: Signal Extraction</div>
-<div class="vbn-nav-card-desc">Neural, behavioral, and eye-tracking data extraction</div>
-</a>
-<a href="phase3-video-pose/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Phase 3: Video & Pose</div>
-<div class="vbn-nav-card-desc">Video assets, SLEAP inference, pose feature engineering</div>
-</a>
-<a href="phase4-correlation/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Phase 4: Neural-Behavior Correlation</div>
-<div class="vbn-nav-card-desc">PETHs, cross-correlation, encoding/decoding, Granger causality</div>
-</a>
-</div>
+<ul class="vbn-links" markdown>
+<li markdown>[Phase 1: Setup & Discovery](phase1-setup.md) <span class="vbn-link-desc">- configuration, session discovery, the SessionBundle dataclass</span></li>
+<li markdown>[Phase 2: Signal Extraction](phase2-signals.md) <span class="vbn-link-desc">- neural, behavioral, and eye-tracking data extraction</span></li>
+<li markdown>[Phase 3: Video & Pose](phase3-video-pose.md) <span class="vbn-link-desc">- video assets, SLEAP inference, pose feature engineering</span></li>
+<li markdown>[Phase 4: Neural-Behavior Correlation](phase4-correlation.md) <span class="vbn-link-desc">- PETHs, cross-correlation, encoding/decoding, Granger causality</span></li>
+</ul>

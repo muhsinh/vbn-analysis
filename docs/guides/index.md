@@ -6,24 +6,12 @@ Practical, step-by-step guides for working with the VBN Analysis Suite. Each gui
 
 ## Available Guides
 
-<div class="vbn-nav-cards vbn-animate" markdown>
-<a href="sleap-workflow/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">SLEAP Workflow</div>
-<div class="vbn-nav-card-desc">The complete labeling, training, inference, and active-learning loop. How many frames to label, where to put models, and how to run batch inference.</div>
-</a>
-<a href="neural-behavior-correlation/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Neural-Behavior Correlation</div>
-<div class="vbn-nav-card-desc">How to interpret PETHs, cross-correlation, encoding/decoding models, Granger causality, and unit selectivity. What makes a "good" result.</div>
-</a>
-<a href="data-access/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Data Access & Storage</div>
-<div class="vbn-nav-card-desc">How the Allen VBN dataset is organized, SDK vs manual mode, S3 video downloads, NWB file inspection, and working with limited disk space.</div>
-</a>
-<a href="troubleshooting/" class="vbn-nav-card" markdown>
-<div class="vbn-nav-card-title">Troubleshooting</div>
-<div class="vbn-nav-card-desc">Solutions for every common error: installation conflicts, import failures, NWB loading issues, video codec problems, SLEAP GPU OOM, and more.</div>
-</a>
-</div>
+<ul class="vbn-links" markdown>
+<li markdown>[SLEAP Workflow](sleap-workflow.md) <span class="vbn-link-desc">- labeling, training, inference, and active-learning loop</span></li>
+<li markdown>[Neural-Behavior Correlation](neural-behavior-correlation.md) <span class="vbn-link-desc">- interpreting PETHs, cross-correlation, encoding/decoding, Granger causality</span></li>
+<li markdown>[Data Access & Storage](data-access.md) <span class="vbn-link-desc">- Allen VBN dataset organization, SDK vs manual mode, S3 downloads</span></li>
+<li markdown>[Troubleshooting](troubleshooting.md) <span class="vbn-link-desc">- solutions for common errors: installation, imports, NWB, video, SLEAP</span></li>
+</ul>
 
 ---
 
