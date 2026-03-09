@@ -1,0 +1,101 @@
+site_name: VBN Analysis Suite
+site_description: Documentation for the Allen Institute Visual Behavior Neuropixels analysis pipeline
+site_url: https://muhsinh.github.io/vbn-analysis/
+repo_url: https://github.com/muhsinh/vbn-analysis
+repo_name: muhsinh/vbn-analysis
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - getting-started/index.md
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - Pipeline:
+    - pipeline/index.md
+    - Phase 1 - Setup & Discovery: pipeline/phase1-setup.md
+    - Phase 2 - Signal Extraction: pipeline/phase2-signals.md
+    - Phase 3 - Video & Pose: pipeline/phase3-video-pose.md
+    - Phase 4 - Neural-Behavior Correlation: pipeline/phase4-correlation.md
+  - Modules:
+    - modules/index.md
+    - config: modules/config.md
+    - io_sessions: modules/io-sessions.md
+    - io_nwb: modules/io-nwb.md
+    - io_video: modules/io-video.md
+    - features_pose: modules/features-pose.md
+    - pose_inference: modules/pose-inference.md
+    - neural_events: modules/neural-events.md
+    - cross_correlation: modules/cross-correlation.md
+    - modeling: modules/modeling.md
+    - motifs: modules/motifs.md
+    - timebase: modules/timebase.md
+    - viz: modules/viz.md
+    - qc: modules/qc.md
+  - Guides:
+    - guides/index.md
+    - SLEAP Workflow: guides/sleap-workflow.md
+    - Neural-Behavior Correlation: guides/neural-behavior-correlation.md
+    - Data Access & Storage: guides/data-access.md
+    - Troubleshooting: guides/troubleshooting.md
+  - Reference:
+    - reference/index.md
+    - Artifacts: reference/artifacts.md
+    - Timebase Contract: reference/timebase.md
+    - Notebook Map: reference/notebook-map.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/muhsinh/vbn-analysis
