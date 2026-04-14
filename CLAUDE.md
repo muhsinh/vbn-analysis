@@ -135,8 +135,8 @@ Discovered 2026-04-13 via NWB deep dive:
 4. **Pre-stimulus state × hit/miss/FA/CR** — arousal tertile split within outcome cleanly separates perception from arousal.
 
 ### Recommended analytical additions (priority order)
-1. Extract `stimulus_presentations` epoch labels → split all analyses by active/passive epoch
-2. Area stratification by `ecephys_structure_acronym`
+1. ~~Extract `stimulus_presentations` epoch labels~~ — **DONE 2026-04-14**
+2. ~~Area stratification by `ecephys_structure_acronym`~~ — **DONE 2026-04-14**
 3. Pre-stimulus running + pupil as trial-level covariates in PETH analysis
 4. Session d-prime filter (drop d-prime < 0.5)
 5. Face SVD via Facemap (zero labels, top 10-20 PCs as encoding covariates)
@@ -181,3 +181,7 @@ Note: `session.nwb_path` does NOT exist — this is the bug in `io_nwb.py:62`.
 | 2026-04-14 | Fixed NB09: SESSION_IDS pinned to [1055240613] (was [:1] = 1043752325); added running/n_units/n_trials to QC loop. |
 | 2026-04-14 | Added NWB + video download cells to NB01 (cells 10-11): AllenSDK NWB download with truncation detection; boto3 unsigned S3 video download for eye+side cameras. No credentials needed. |
 | 2026-04-14 | Literature review complete. Key gaps identified: active vs. passive epoch split (highest priority), area stratification, pre-stimulus behavioral state as trial covariate, banded ridge regression (himalaya), face SVD via Facemap, session d-prime filter. See Literature section below. |
+| 2026-04-14 | Session 1055240613 NWB re-downloaded successfully: 2.78 GB. Session 1043752325 timed out — use aws s3 cp fallback. |
+| 2026-04-14 | Area stratification implemented: extract_units_and_spikes() now preserves ecephys_structure_acronym; compute_alignment_by_area() in cross_correlation.py runs encoding model per area. |
+| 2026-04-14 | extract_stimulus_presentations() added to io_nwb.py — per-flash table with image_name, is_change, is_omission, active (epoch flag). SessionBundle.load_stimulus_presentations() added. |
+| 2026-04-14 | NB08 new cell 10: per-area encoding R2 + active/passive epoch split. Prints Delta R2 (active - passive) — the key VBN comparison. NB03 updated to extract + cache stimulus presentations. |
