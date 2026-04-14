@@ -65,13 +65,19 @@ MkDocs Material site. GitHub Actions deploys on push to `main` when `docs/` or `
 - **`io_nwb.py:62` broken in SDK mode**: `BehaviorEcephysSession` has no `.nwb_path` attribute — the `hasattr` guard silently returns `None`. Workaround: use `ACCESS_MODE=manual` and populate `sessions.csv`.
 - **Notebook ROOT setup**: Fixed 2026-04-13 — notebooks 00–04, 07–09 now use conditional `if not (ROOT / "src").exists(): ROOT = ROOT.parent`. Works from repo root or inside `notebooks/`.
 
-## Local Data (as of 2026-04-13)
+## Local Data (as of 2026-04-14)
 
-Sessions with real NWB data downloaded locally:
-- `1043752325` → `data/allensdk_cache/visual-behavior-neuropixels-0.5.0/behavior_ecephys_sessions/1043752325/ecephys_session_1043752325.nwb` + video metadata in `data/raw/visual-behavior-neuropixels/1043752325/behavior_videos/`
-- `1055240613` → `data/allensdk_cache/visual-behavior-neuropixels-0.5.0/behavior_ecephys_sessions/1055240613/ecephys_session_1055240613.nwb`
+Sessions with real NWB data:
+- `1043752325` → NWB path populated in sessions.csv. File was truncated (203 MB, expected ~3 GB) — re-download in progress via `scripts/redownload_nwb.py`.
+- `1055240613` → NWB path populated in sessions.csv. File was truncated (130 MB, expected ~2.99 GB) — re-download in progress. Videos not yet downloaded.
 
-`sessions.csv` has NWB paths populated for these two sessions. All others fall back to mock.
+`sessions.csv` has NWB paths populated for both sessions. All others fall back to mock.
+
+**To re-download truncated NWB files:**
+```bash
+conda activate vbn-analysis
+python scripts/redownload_nwb.py
+```
 
 ## Recommended Run Command
 
@@ -100,13 +106,43 @@ Beyond SLEAP (currently installed, ~150 frames labeled):
 ## Known Pipeline Gaps (Critical)
 
 Discovered 2026-04-13 via NWB deep dive:
-1. **No unit quality filtering** — noise units included. Fix: filter `quality == "good"` in `extract_units_and_spikes()`.
-2. **No brain area grouping** — `ecephys_structure_acronym` never used. All area-specific effects average out.
-3. **Running speed not extracted** — in `nwb.processing["running"]["running_speed"]`. Must be covariate in all neural analyses.
-4. **Stimulus presentations not extracted** — `nwb.intervals["stimulus_presentations"]`. Needed for flash-locked PETHs, image decoding, omission responses.
-5. **Trial features gutted** — `features_task.py` keeps 4 of 20+ columns. Missing: hit/miss/FA/CR, response_latency, image identity, change_time_no_display_delay, lick_times.
+1. ~~**No unit quality filtering**~~ — **FIXED 2026-04-14** in `io_nwb.extract_units_and_spikes()`.
+2. **No brain area grouping** — `ecephys_structure_acronym` never used. All area-specific effects average out. HIGH PRIORITY.
+3. ~~**Running speed not extracted**~~ — **FIXED 2026-04-14** via `io_sessions.SessionBundle.load_running_speed()` + NB03.
+4. **Stimulus presentations not extracted** — `nwb.intervals["stimulus_presentations"]`. Needed for flash-locked PETHs, active vs. passive epoch split, image decoding. HIGH PRIORITY (see Literature section).
+5. ~~**Trial features gutted**~~ — **FIXED 2026-04-14**: `extract_trials()` now keeps hit/miss/FA/CR, response_latency, image identity, change_time_no_display_delay, go/catch.
 6. **Eye tracking incomplete** — no blink filtering (`likely_blink`), pupil position/corneal reflection unused.
 7. **Licking/rewards never extracted** — `nwb.processing["licking"]`, `nwb.processing["rewards"]`.
+8. **Active vs. passive replay epoch never split** — the VBN dataset has both in every session; the passive epoch is the highest-value unused signal in the entire dataset (see Literature).
+9. **No session-level engagement filter** — many sessions have d-prime < 0.5 (mice at chance). Including them contaminates all analyses. Add d-prime filter per session.
+10. **Pre-stimulus behavioral state not used as trial-level covariate** — hit/miss PETHs confounded by arousal at time of trial. Need mean running + pupil in [-1, 0]s window per trial.
+
+## Literature Context and Research Gaps
+
+### Landmark findings
+- **Niell & Stryker 2010** — locomotion doubles V1 firing rates; effect is cortical, not thalamic.
+- **Reimer et al. 2014/2016** — running and pupil are *separate* signals; model as independent covariates.
+- **Stringer et al. 2019 (Science)** — facial movements predict ~⅓ of V1 variance, far more than running+pupil alone. Motivates face.mp4 SVD.
+- **Musall et al. 2019 (Nature Neuroscience)** — uninstructed movements dominate single-trial variance. Hit/miss PETHs are confounded by movement unless regressed out.
+- **Steinmetz et al. 2019 (Nature)** — pre-stimulus population activity predicts trial-by-trial engagement.
+- **Siegle et al. 2021 (Nature)** — passive-viewing baseline for visual hierarchy (V1→LM→AL→PM→AM). This is the comparison target.
+- **Syeda et al. 2024 (Nature Neuroscience / Facemap paper)** — face keypoints + SVD doubles explained variance vs SVD alone.
+
+### What the VBN dataset uniquely enables (unpublished territory)
+1. **Active vs. passive replay in same session** — every session has both; nobody has analyzed behavioral state modulation across this contrast at scale.
+2. **Image familiarity × behavioral state** — familiar/novel counterbalanced within-session; interaction with arousal unaddressed.
+3. **6-area noise correlation matrix by state** — inter-area noise correlations at scale are unpublished.
+4. **Pre-stimulus state × hit/miss/FA/CR** — arousal tertile split within outcome cleanly separates perception from arousal.
+
+### Recommended analytical additions (priority order)
+1. Extract `stimulus_presentations` epoch labels → split all analyses by active/passive epoch
+2. Area stratification by `ecephys_structure_acronym`
+3. Pre-stimulus running + pupil as trial-level covariates in PETH analysis
+4. Session d-prime filter (drop d-prime < 0.5)
+5. Face SVD via Facemap (zero labels, top 10-20 PCs as encoding covariates)
+6. Replace RidgeCV with banded ridge (`pip install himalaya`) for unbiased variance partitioning
+7. Noise correlation matrix by area and behavioral state
+8. CEBRA for multi-session latent embedding
 
 ## Correct AllenSDK 2.16.0 Session API
 
@@ -139,3 +175,9 @@ Note: `session.nwb_path` does NOT exist — this is the bug in `io_nwb.py:62`.
 | 2026-04-13 | Multi-expert analysis: running speed already in NWB (encoder, cm/s) — do NOT use side camera for this. Face.mp4 > side.mp4 for neural prediction (Stringer: face explains 10-25% V1 variance orthogonal to pupil+running). Priority: fix encoding GLM + extract running/licks/rewards from NWB first, then eye.mp4 Facemap, then face.mp4. Side camera / SuperAnimal is lowest priority. |
 | 2026-04-13 | Notebook 08 updated: cell 4 adds BEHAVIOR_COLS/GAP_BINS/N_PERMUTATIONS config; cell 6 merges running+pupil+pose into combined behavior_df, uses new behavior_cols API, handles both single and multi-covariate dict structures in prints. |
 | 2026-04-13 | Fixed cross_correlation.py + modeling.py per Pillow critique: (1) fit_encoding_model now forward-chain CV only (no future leakage), gap_bins=20 default; (2) raised_cosine_basis + _add_raised_cosine_lags added (±1s, log-spaced, 8 basis fns); (3) permutation_test() added — circular shifts null distribution, wired into compute_neural_behavior_alignment; (4) fit_multi_covariate_encoding_model() added — RidgeCV full model + variance partitioning per covariate; (5) compute_neural_behavior_alignment now accepts behavior_cols list for multi-covariate analysis; (6) time_blocked_splits gets gap_bins parameter. |
+| 2026-04-14 | Both NWB files confirmed truncated (130MB/203MB instead of ~3GB). Added scripts/redownload_nwb.py to force-delete and re-download via AllenSDK. |
+| 2026-04-14 | Fixed NB03 cell 6: SESSION_IDS pinned to [1055240613]; added running speed extraction + print after trials. |
+| 2026-04-14 | Fixed NB08 cell 6: running_df was referenced but never defined (would crash immediately) — added load inside loop from cache or bundle.load_running_speed(). Fixed PETH grouping to use go/catch > hit/miss > trial_type. Fixed selectivity (cell 10) to same column priority. Fixed summary (cell 11) to handle full_r2 (multi-covariate) and mean_r2 (single). |
+| 2026-04-14 | Fixed NB09: SESSION_IDS pinned to [1055240613] (was [:1] = 1043752325); added running/n_units/n_trials to QC loop. |
+| 2026-04-14 | Added NWB + video download cells to NB01 (cells 10-11): AllenSDK NWB download with truncation detection; boto3 unsigned S3 video download for eye+side cameras. No credentials needed. |
+| 2026-04-14 | Literature review complete. Key gaps identified: active vs. passive epoch split (highest priority), area stratification, pre-stimulus behavioral state as trial covariate, banded ridge regression (himalaya), face SVD via Facemap, session d-prime filter. See Literature section below. |
