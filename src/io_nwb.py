@@ -154,6 +154,13 @@ def extract_units_and_spikes(
             spike_times[str(unit_id)] = np.asarray(times)
         units_df = units_df.drop(columns=["spike_times"])
 
+    # Ensure brain area column is present — critical for area-stratified analyses
+    for area_col in ("ecephys_structure_acronym", "structure_acronym", "location"):
+        if area_col in units_df.columns:
+            if area_col != "ecephys_structure_acronym":
+                units_df = units_df.rename(columns={area_col: "ecephys_structure_acronym"})
+            break
+
     return units_df.reset_index(drop=False), spike_times
 
 
@@ -196,6 +203,66 @@ def extract_trials(nwb: Any) -> pd.DataFrame | None:
     # Always include anything not in the drop list (avoid silent column loss)
     extra = [c for c in df.columns if c not in keep_cols and c not in ("lick_times",)]
     return df[keep_cols + extra]
+
+
+def extract_stimulus_presentations(nwb: Any) -> pd.DataFrame | None:
+    """Extract stimulus presentation table from NWB.
+
+    Returns a DataFrame with one row per flash, including:
+      t                   – flash onset time (NWB seconds, display-lag corrected)
+      t_start / t_end     – stimulus interval
+      image_name          – identity of the image shown
+      image_index         – integer image index
+      is_change           – True on change flashes
+      is_omission         – True on omitted flashes (blank screen)
+      active              – True during the active task epoch, False during passive
+      stimulus_block      – block index (increments each time stimulus set changes)
+      stimulus_name       – 'natural_scenes' or 'natural_movie_*' etc.
+    """
+    if nwb is None:
+        return None
+
+    # Primary location: nwb.intervals["stimulus_presentations"]
+    intervals = getattr(nwb, "intervals", None) or {}
+    for key in ("stimulus_presentations", "stimuli"):
+        if key not in intervals:
+            continue
+        try:
+            df = intervals[key].to_dataframe() if hasattr(intervals[key], "to_dataframe") else pd.DataFrame(intervals[key])
+            df = df.reset_index(drop=False)
+
+            # Standardise timing columns
+            if "start_time" in df.columns:
+                df = df.rename(columns={"start_time": "t_start", "stop_time": "t_end"})
+            # Use stimulus_time_offset-corrected onset where available
+            if "stimulus_time_offset" in df.columns:
+                df["t"] = df["t_start"] + df["stimulus_time_offset"]
+            else:
+                df["t"] = df.get("t_start", df.get("t", np.zeros(len(df))))
+
+            # Normalise column names used by downstream code
+            renames = {
+                "image_name": "image_name",
+                "stimulus_name": "stimulus_name",
+                "change_frame": "is_change",
+                "omitted": "is_omission",
+                "active": "active",
+                "stimulus_block": "stimulus_block",
+            }
+            for src, dst in renames.items():
+                if src in df.columns and dst not in df.columns:
+                    df = df.rename(columns={src: dst})
+
+            # Derive active epoch flag if not present
+            if "active" not in df.columns and "stimulus_block" in df.columns:
+                # Convention: odd-numbered blocks are active in VBN
+                df["active"] = df["stimulus_block"] % 2 == 1
+
+            return df
+        except Exception:
+            continue
+
+    return None
 
 
 def extract_running_speed(nwb: Any) -> pd.DataFrame | None:
@@ -342,6 +409,23 @@ def save_behavior_tables(
             provenance=provenance,
             required_columns=required,
         )
+
+
+def save_stimulus_presentations(
+    stim_df: pd.DataFrame,
+    stim_path: Path,
+    session_id: int,
+    alignment_method: str,
+) -> None:
+    provenance = _provenance(session_id, alignment_method)
+    required = ["t"] if "t" in stim_df.columns else None
+    write_parquet_with_timebase(
+        stim_df,
+        stim_path,
+        timebase="nwb_seconds",
+        provenance=provenance,
+        required_columns=required,
+    )
 
 
 def save_eye_table(

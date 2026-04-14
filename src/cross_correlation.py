@@ -793,6 +793,72 @@ def granger_test(
 # Convenience: full neural-behavior alignment report
 # ---------------------------------------------------------------------------
 
+def compute_alignment_by_area(
+    spike_times_dict: Dict[str, np.ndarray],
+    units_df: "pd.DataFrame",
+    behavior_df: "pd.DataFrame",
+    trials: "pd.DataFrame | None" = None,
+    bin_size: float = 0.025,
+    behavior_cols: Optional[List[str]] = None,
+    behavior_col: str = "running",
+    max_lag_bins: int = 40,
+    gap_bins: int = 20,
+    n_permutations: int = 200,
+    area_col: str = "ecephys_structure_acronym",
+    min_units: int = 5,
+) -> Dict[str, Dict[str, Any]]:
+    """Run compute_neural_behavior_alignment separately for each brain area.
+
+    Parameters
+    ----------
+    units_df : DataFrame with a unit_id column and an area column.
+    area_col : Column in units_df that holds the brain area label.
+    min_units : Skip areas with fewer than this many units.
+
+    Returns
+    -------
+    dict mapping area_name -> alignment result dict
+    """
+    import pandas as _pd
+
+    if area_col not in units_df.columns:
+        return {"all": compute_neural_behavior_alignment(
+            spike_times_dict, behavior_df, trials,
+            bin_size=bin_size, behavior_col=behavior_col,
+            behavior_cols=behavior_cols, max_lag_bins=max_lag_bins,
+            gap_bins=gap_bins, n_permutations=n_permutations,
+        )}
+
+    areas = units_df[area_col].dropna().unique()
+    results: Dict[str, Dict[str, Any]] = {}
+
+    for area in sorted(areas):
+        area_units = units_df[units_df[area_col] == area]
+        # unit_id may be stored as int or string index
+        uid_col = "unit_id" if "unit_id" in area_units.columns else area_units.index.name or "index"
+        if uid_col == "index":
+            unit_ids = {str(i) for i in area_units.index}
+        else:
+            unit_ids = {str(u) for u in area_units[uid_col]}
+
+        area_spikes = {k: v for k, v in spike_times_dict.items() if k in unit_ids}
+        if len(area_spikes) < min_units:
+            continue
+
+        area_result = compute_neural_behavior_alignment(
+            area_spikes, behavior_df, trials,
+            bin_size=bin_size, behavior_col=behavior_col,
+            behavior_cols=behavior_cols, max_lag_bins=max_lag_bins,
+            gap_bins=gap_bins, n_permutations=n_permutations,
+            run_variance_partitioning=(behavior_cols is not None and len(behavior_cols) >= 2),
+        )
+        area_result["area"] = area
+        area_result["n_area_units"] = len(area_spikes)
+        results[area] = area_result
+
+    return results
+
+
 def compute_neural_behavior_alignment(
     spike_times_dict: Dict[str, np.ndarray],
     behavior_df: pd.DataFrame,

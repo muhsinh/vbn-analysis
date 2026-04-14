@@ -193,6 +193,36 @@ class SessionBundle:
         logger.info(f"Saved eye features to {eye_path}")
         return eye_features
 
+    def load_stimulus_presentations(self) -> pd.DataFrame | None:
+        """Load per-flash stimulus presentation table.
+
+        Returns a DataFrame with columns: t, t_start, t_end, image_name,
+        is_change, is_omission, active (True=task epoch, False=passive replay),
+        stimulus_block. Cached to outputs/behavior/session_{id}_stimuli.parquet.
+        """
+        cfg = get_config()
+        logger = self.ensure_logger()
+        cache_path = cfg.outputs_dir / "behavior" / f"session_{self.session_id}_stimuli.parquet"
+
+        if cache_path.exists():
+            return pd.read_parquet(cache_path)
+
+        with io_nwb.open_nwb_handle(self.nwb_path, mock_mode=cfg.mock_mode) as nwb:
+            stim = io_nwb.extract_stimulus_presentations(nwb)
+
+        if stim is None:
+            logger.warning("Stimulus presentations not found in NWB")
+            return None
+
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        io_nwb.save_stimulus_presentations(
+            stim, cache_path,
+            session_id=self.session_id,
+            alignment_method="nwb",
+        )
+        logger.info(f"Saved stimulus presentations to {cache_path}")
+        return stim
+
     def load_running_speed(self) -> pd.DataFrame | None:
         """Load running speed (cm/s) from NWB wheel encoder.
 
