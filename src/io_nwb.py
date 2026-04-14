@@ -335,15 +335,72 @@ def extract_behavior_events(nwb: Any) -> pd.DataFrame | None:
 
 
 def extract_eye_tracking(nwb: Any) -> pd.DataFrame | None:
+    """Extract eye tracking from VBN NWB files.
+
+    Primary path: nwb.acquisition["EyeTracking"] (EllipseEyeTracking),
+    which contains pupil_tracking (area, x/y, angle) and
+    corneal_reflection_tracking + eye_tracking (likely_blink).
+    Falls back to nwb.processing["eye_tracking"] for older formats.
+    """
     if nwb is None:
         return None
 
+    # ── Primary: VBN EllipseEyeTracking in acquisition ───────────────────
+    acquisition = getattr(nwb, "acquisition", {}) or {}
+    if "EyeTracking" in acquisition:
+        try:
+            et = acquisition["EyeTracking"]
+            series = getattr(et, "spatial_series", {}) or {}
+
+            pt = series.get("pupil_tracking")
+            if pt is None:
+                pt = series.get("pupil_tracking", None)
+
+            if pt is not None:
+                times = np.asarray(pt.timestamps)
+                df = pd.DataFrame({"t": times})
+
+                # Pupil area (scalar per frame)
+                if hasattr(pt, "area") and pt.area is not None:
+                    df["pupil_area"] = np.asarray(pt.area)
+                elif hasattr(pt, "area_raw") and pt.area_raw is not None:
+                    df["pupil_area"] = np.asarray(pt.area_raw)
+
+                # Pupil centre (data is (n, 2) → x, y)
+                raw = np.asarray(pt.data)
+                if raw.ndim == 2 and raw.shape[1] >= 2:
+                    df["pupil_x"] = raw[:, 0]
+                    df["pupil_y"] = raw[:, 1]
+
+                # Ellipse geometry
+                for attr, col in [("width", "pupil_width"), ("height", "pupil_height"),
+                                   ("angle", "pupil_angle")]:
+                    val = getattr(pt, attr, None)
+                    if val is not None:
+                        arr = np.asarray(val)
+                        if arr.shape == times.shape:
+                            df[col] = arr
+
+                # Blink flag from eye_tracking series
+                et_series = series.get("eye_tracking")
+                if et_series is not None:
+                    for attr in ("likely_blink",):
+                        val = getattr(et_series, attr, None)
+                        if val is not None:
+                            arr = np.asarray(val)
+                            if arr.shape == times.shape:
+                                df["likely_blink"] = arr.astype(bool)
+
+                return df
+        except Exception:
+            pass
+
+    # ── Fallback: processing["eye_tracking"] (older NWB format) ──────────
     processing = getattr(nwb, "processing", {}) or {}
     if "eye_tracking" not in processing:
         return None
 
     eye_module = processing["eye_tracking"]
-    # Try common interfaces
     for name, ts in eye_module.data_interfaces.items():
         try:
             times = np.asarray(ts.timestamps)
