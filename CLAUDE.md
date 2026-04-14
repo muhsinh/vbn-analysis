@@ -185,3 +185,5 @@ Note: `session.nwb_path` does NOT exist — this is the bug in `io_nwb.py:62`.
 | 2026-04-14 | Area stratification implemented: extract_units_and_spikes() now preserves ecephys_structure_acronym; compute_alignment_by_area() in cross_correlation.py runs encoding model per area. |
 | 2026-04-14 | extract_stimulus_presentations() added to io_nwb.py — per-flash table with image_name, is_change, is_omission, active (epoch flag). SessionBundle.load_stimulus_presentations() added. |
 | 2026-04-14 | NB08 new cell 10: per-area encoding R2 + active/passive epoch split. Prints Delta R2 (active - passive) — the key VBN comparison. NB03 updated to extract + cache stimulus presentations. |
+| 2026-04-14 | NB06 rewritten: Facemap pupil tracking (eye.mp4, zero labels), Facemap SVD motion energy (face.mp4, zero labels), SuperAnimal-quadruped (side.mp4, zero labels). Graceful skip if video missing. |
+| 2026-04-14 | NB07 rewritten: aligns Facemap + SuperAnimal frame indices to NWB seconds via frame_times (linear fallback), blink filtering + interpolation, body_speed from keypoint velocity, merges all pose signals to single pose_features.parquet. |
