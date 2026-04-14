@@ -1,5 +1,5 @@
 session_id,nwb_path,video_dir,notes
-1043752325,,,
+1043752325,data/allensdk_cache/visual-behavior-neuropixels-0.5.0/behavior_ecephys_sessions/1043752325/ecephys_session_1043752325.nwb,data/raw/visual-behavior-neuropixels/1043752325/behavior_videos,
 1044016459,,,
 1044385384,,,
 1044389060,,,
@@ -23,7 +23,7 @@ session_id,nwb_path,video_dir,notes
 1053925378,,,
 1053941483,,,
 1055221968,,,
-1055240613,,,
+1055240613,data/allensdk_cache/visual-behavior-neuropixels-0.5.0/behavior_ecephys_sessions/1055240613/ecephys_session_1055240613.nwb,,
 1055403683,,,
 1055415082,,,
 1056495334,,,

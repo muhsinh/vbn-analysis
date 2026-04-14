@@ -68,7 +68,25 @@ def encode_for_model(X: pd.DataFrame, categorical_cols: List[str], model_name: s
     return X
 
 
-def time_blocked_splits(n_samples: int, n_splits: int = 5) -> List[Tuple[np.ndarray, np.ndarray]]:
+def time_blocked_splits(
+    n_samples: int,
+    n_splits: int = 5,
+    gap_bins: int = 0,
+) -> List[Tuple[np.ndarray, np.ndarray]]:
+    """Forward-chaining time-blocked cross-validation splits.
+
+    Each split trains only on data BEFORE the test block, with an optional
+    temporal gap to prevent autocorrelation leakage.
+
+    Parameters
+    ----------
+    n_samples : int
+    n_splits : int
+    gap_bins : int
+        Number of bins to exclude between the end of training and the start
+        of the test block. Use ~20 bins (500ms at 25ms bins) for behavioral
+        signals with long autocorrelation.
+    """
     if n_samples < 4:
         return []
     block = max(1, n_samples // (n_splits + 1))
@@ -76,7 +94,8 @@ def time_blocked_splits(n_samples: int, n_splits: int = 5) -> List[Tuple[np.ndar
     for i in range(1, n_splits + 1):
         test_start = i * block
         test_end = min((i + 1) * block, n_samples)
-        train_idx = np.arange(0, test_start)
+        train_end = max(0, test_start - gap_bins)
+        train_idx = np.arange(0, train_end)
         test_idx = np.arange(test_start, test_end)
         if len(train_idx) == 0 or len(test_idx) == 0:
             continue

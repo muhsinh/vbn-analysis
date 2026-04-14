@@ -193,6 +193,37 @@ class SessionBundle:
         logger.info(f"Saved eye features to {eye_path}")
         return eye_features
 
+    def load_running_speed(self) -> pd.DataFrame | None:
+        """Load running speed (cm/s) from NWB wheel encoder.
+
+        Returns a DataFrame with columns ['t', 'running'] on the NWB
+        seconds clock. Caches to outputs/behavior/session_{id}_running.parquet.
+        """
+        cfg = get_config()
+        logger = self.ensure_logger()
+        cache_path = cfg.outputs_dir / "behavior" / f"session_{self.session_id}_running.parquet"
+
+        if cache_path.exists():
+            return pd.read_parquet(cache_path)
+
+        with io_nwb.open_nwb_handle(self.nwb_path, mock_mode=cfg.mock_mode) as nwb:
+            running = io_nwb.extract_running_speed(nwb)
+
+        if running is None:
+            logger.warning("Running speed data missing from NWB")
+            return None
+
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        from timebase import write_parquet_with_timebase
+        from config import make_provenance
+        write_parquet_with_timebase(
+            running, cache_path,
+            provenance=make_provenance(self.session_id, "nwb"),
+            required_columns=["t", "running"],
+        )
+        logger.info(f"Saved running speed to {cache_path}")
+        return running
+
     def load_video_assets(self) -> pd.DataFrame:
         from io_video import build_video_assets
         cfg = get_config()

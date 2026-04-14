@@ -104,37 +104,135 @@ def inspect_modalities(nwb: Any) -> Dict[str, bool]:
     return modalities
 
 
-def extract_units_and_spikes(nwb: Any) -> Tuple[pd.DataFrame | None, Dict[str, Any] | None]:
+def extract_units_and_spikes(
+    nwb: Any,
+    quality_filter: bool = True,
+    min_presence_ratio: float = 0.9,
+    max_isi_violations: float = 0.5,
+    max_amplitude_cutoff: float = 0.1,
+) -> Tuple[pd.DataFrame | None, Dict[str, Any] | None]:
+    """Extract units table and spike times from NWB, with quality filtering.
+
+    Parameters
+    ----------
+    quality_filter : bool
+        If True (default), keep only units with quality == 'good' and
+        passing the ISI / presence / amplitude thresholds recommended by
+        the Allen Institute (Corbett Bennett et al., VBN manuscript).
+    min_presence_ratio : float
+        Minimum fraction of session with at least one spike per bin.
+    max_isi_violations : float
+        Maximum fraction of ISI violations (< 1.5ms refractory).
+    max_amplitude_cutoff : float
+        Maximum estimated fraction of spikes below detection threshold.
+    """
     if nwb is None or not hasattr(nwb, "units") or nwb.units is None:
         return None, None
 
     units_table = nwb.units
-    if hasattr(units_table, "to_dataframe"):
-        units_df = units_table.to_dataframe()
-    else:
-        units_df = pd.DataFrame(units_table)
-    spike_times = {}
+    units_df = units_table.to_dataframe() if hasattr(units_table, "to_dataframe") else pd.DataFrame(units_table)
+
+    # --- Quality filtering ---
+    if quality_filter:
+        n_before = len(units_df)
+        if "quality" in units_df.columns:
+            units_df = units_df[units_df["quality"] == "good"]
+        if "isi_violations" in units_df.columns:
+            units_df = units_df[units_df["isi_violations"] <= max_isi_violations]
+        if "presence_ratio" in units_df.columns:
+            units_df = units_df[units_df["presence_ratio"] >= min_presence_ratio]
+        if "amplitude_cutoff" in units_df.columns:
+            units_df = units_df[units_df["amplitude_cutoff"] <= max_amplitude_cutoff]
+        n_after = len(units_df)
+        if n_before > 0:
+            print(f"    Quality filter: {n_before} → {n_after} units "
+                  f"({n_before - n_after} removed, {100*n_after/n_before:.0f}% kept)")
+
+    spike_times: Dict[str, Any] = {}
     if "spike_times" in units_df.columns:
         for unit_id, times in units_df["spike_times"].items():
             spike_times[str(unit_id)] = np.asarray(times)
         units_df = units_df.drop(columns=["spike_times"])
+
     return units_df.reset_index(drop=False), spike_times
 
 
 def extract_trials(nwb: Any) -> pd.DataFrame | None:
+    """Extract trials table, preserving all behaviorally relevant columns.
+
+    Keeps: timing, outcomes (hit/miss/FA/CR), response latency, image
+    identity, lick times, reward info, and the display-lag-corrected
+    change time. Filters out auto-rewarded trials from outcome columns
+    since they should not be included in behavioral performance metrics.
+    """
     if nwb is None or not hasattr(nwb, "trials") or nwb.trials is None:
         return None
     trials_table = nwb.trials
-    if hasattr(trials_table, "to_dataframe"):
-        df = trials_table.to_dataframe()
-    else:
-        df = pd.DataFrame(trials_table)
+    df = trials_table.to_dataframe() if hasattr(trials_table, "to_dataframe") else pd.DataFrame(trials_table)
     df = df.reset_index(drop=False)
+
+    # Standardise timing columns
     if "start_time" in df.columns:
         df = df.rename(columns={"start_time": "t_start", "stop_time": "t_end"})
-    if "t_start" in df.columns and "t" not in df.columns:
+    # Use corrected change time where available (removes display lag)
+    if "change_time_no_display_delay" in df.columns:
+        df["t"] = df["change_time_no_display_delay"]
+    elif "t_start" in df.columns:
         df["t"] = df["t_start"]
-    return df
+
+    # Preserve all outcome and identity columns that exist
+    _keep = [
+        "t", "t_start", "t_end",
+        "hit", "miss", "false_alarm", "correct_reject", "aborted",
+        "go", "catch", "stimulus_change", "is_change", "auto_rewarded",
+        "response_latency", "response_time",
+        "reward_time", "reward_volume",
+        "initial_image_name", "change_image_name", "stimulus_name",
+        "change_time_no_display_delay",
+        # legacy / pipeline columns
+        "trial_type", "rewarded",
+    ]
+    keep_cols = [c for c in _keep if c in df.columns]
+    # Always include anything not in the drop list (avoid silent column loss)
+    extra = [c for c in df.columns if c not in keep_cols and c not in ("lick_times",)]
+    return df[keep_cols + extra]
+
+
+def extract_running_speed(nwb: Any) -> pd.DataFrame | None:
+    """Extract running speed from the rotary wheel encoder.
+
+    Returns a DataFrame with columns ['t', 'running'] where 'running'
+    is velocity in cm/s on the NWB seconds clock. This is the
+    calibrated encoder signal used in all Allen Institute publications
+    — use this in preference to video-derived running estimates.
+    """
+    if nwb is None:
+        return None
+
+    processing = getattr(nwb, "processing", {}) or {}
+
+    # Primary location: nwb.processing["running"]["running_speed"]
+    for module_name in ("running", "behavior"):
+        if module_name not in processing:
+            continue
+        module = processing[module_name]
+        for ts_name in ("running_speed", "speed", "RunningSpeed"):
+            if ts_name not in module.data_interfaces:
+                continue
+            ts = module.data_interfaces[ts_name]
+            try:
+                times = np.asarray(ts.timestamps)
+                data = np.asarray(ts.data)
+                if data.ndim > 1:
+                    data = data[:, 0]
+                df = pd.DataFrame({"t": times, "running": data})
+                # Clip negative speeds (encoder artefact)
+                df["running"] = df["running"].clip(lower=0.0)
+                return df
+            except Exception:
+                continue
+
+    return None
 
 
 def extract_behavior_events(nwb: Any) -> pd.DataFrame | None:
