@@ -6,11 +6,13 @@ import os
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
+from vbn_types import Provenance
+
+ROOT_DIR: Path = Path(__file__).resolve().parents[1]
 
 
 def _get_env(name: str, default: str | None = None) -> str | None:
@@ -62,7 +64,7 @@ class Config:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.video_cache_dir.mkdir(parents=True, exist_ok=True)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "access_mode": self.access_mode,
             "pose_tool": self.pose_tool,
@@ -122,7 +124,7 @@ def get_code_version() -> str:
         ).strip()
         if result:
             return result
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
         pass
     return "unknown"
 
@@ -139,7 +141,7 @@ def write_config_snapshot(path: Path | None = None) -> Path:
     return path
 
 
-def make_provenance(session_id: int | None, alignment_method: str) -> Dict[str, Any]:
+def make_provenance(session_id: int | None, alignment_method: str) -> Provenance:
     return {
         "session_id": session_id,
         "code_version": get_code_version(),

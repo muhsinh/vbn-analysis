@@ -1,6 +1,7 @@
 """VBN analysis suite modules."""
 
 __all__ = [
+    "vbn_types",
     "config",
     "io_sessions",
     "io_nwb",

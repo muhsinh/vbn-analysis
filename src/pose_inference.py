@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -22,11 +22,8 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Model discovery
-# ---------------------------------------------------------------------------
 
-def discover_sleap_models(search_dirs: List[Path] | None = None) -> List[Dict[str, Any]]:
+def discover_sleap_models(search_dirs: list[Path] | None = None) -> list[dict[str, Any]]:
     """Find trained SLEAP models on disk.
 
     Searches pose_projects/, outputs/models/, and any user-specified dirs.
@@ -44,13 +41,12 @@ def discover_sleap_models(search_dirs: List[Path] | None = None) -> List[Dict[st
             cfg.data_dir / "sleap_models",
         ]
 
-    models: List[Dict[str, Any]] = []
+    models: list[dict[str, Any]] = []
 
     for base in search_dirs:
         if not base.exists():
             continue
 
-        # Pattern 1: directory-based models (training_config.json)
         for config_path in base.rglob("training_config.json"):
             model_dir = config_path.parent
             meta = _parse_training_config(config_path)
@@ -61,7 +57,6 @@ def discover_sleap_models(search_dirs: List[Path] | None = None) -> List[Dict[st
                 **meta,
             })
 
-        # Pattern 2: exported .zip or .pkg.slp model packages
         for ext in ("*.zip", "*.pkg.slp"):
             for pkg in base.rglob(ext):
                 models.append({
@@ -70,7 +65,6 @@ def discover_sleap_models(search_dirs: List[Path] | None = None) -> List[Dict[st
                     "name": pkg.stem,
                 })
 
-        # Pattern 3: .h5 / .keras weight files (bare exports)
         for ext in ("*.h5", "*.keras"):
             for wf in base.rglob(ext):
                 if any(wf.is_relative_to(Path(m["path"])) for m in models):
@@ -84,7 +78,7 @@ def discover_sleap_models(search_dirs: List[Path] | None = None) -> List[Dict[st
     return models
 
 
-def _parse_training_config(config_path: Path) -> Dict[str, Any]:
+def _parse_training_config(config_path: Path) -> dict[str, Any]:
     """Extract useful metadata from a SLEAP training_config.json."""
     try:
         data = json.loads(config_path.read_text(encoding="utf-8"))
@@ -95,17 +89,14 @@ def _parse_training_config(config_path: Path) -> Dict[str, Any]:
                 data.get("data", {}).get("labels", {}).get("skeletons", [{}])[0].get("nodes", [])
             ) if data.get("data", {}).get("labels", {}).get("skeletons") else None,
         }
-    except Exception:
+    except (json.JSONDecodeError, KeyError, IndexError, OSError):
         return {"name": config_path.parent.name}
 
 
-# ---------------------------------------------------------------------------
-# Batch inference
-# ---------------------------------------------------------------------------
 
 def run_sleap_inference(
     video_path: Path,
-    model_paths: List[str] | str,
+    model_paths: list[str] | str,
     output_path: Path | None = None,
     batch_size: int = 4,
     peak_threshold: float = 0.2,
@@ -152,7 +143,6 @@ def run_sleap_inference(
     if output_path is None:
         output_path = video_path.with_suffix(".predictions.slp")
 
-    # Build the SLEAP CLI args
     args = [
         str(video_path),
         "--batch_size", str(batch_size),
@@ -164,16 +154,15 @@ def run_sleap_inference(
 
     logger.info(f"Running SLEAP inference: {video_path.name} -> {output_path.name}")
 
-    # Use SLEAP's inference API directly
     sleap.nn.inference.main(args)
 
     return output_path
 
 
 def run_batch_inference(
-    session_ids: List[int] | None = None,
-    cameras: List[str] | None = None,
-    model_paths: List[str] | str | None = None,
+    session_ids: list[int] | None = None,
+    cameras: list[str] | None = None,
+    model_paths: list[str] | str | None = None,
     batch_size: int = 4,
     skip_existing: bool = True,
 ) -> pd.DataFrame:
@@ -210,7 +199,6 @@ def run_batch_inference(
     if cameras is None:
         cameras = cfg.video_cameras
 
-    # Auto-discover model if not specified
     if model_paths is None:
         models = discover_sleap_models()
         if not models:
@@ -219,11 +207,9 @@ def run_batch_inference(
                 "then place it in pose_projects/ or data/sleap_models/.\n"
                 "To train: sleap-train <config.json> <labels.slp>"
             )
-        # Use the first discovered model
-        model_paths = [models[0]["path"]]
+            model_paths = [models[0]["path"]]
         logger.info(f"Auto-discovered model: {model_paths[0]}")
 
-    # Find all cached videos
     video_assets = load_video_assets()
     if video_assets.empty:
         logger.warning("No video assets found. Run Notebook 05 first.")
@@ -279,7 +265,6 @@ def run_batch_inference(
                 output_path=slp_path,
                 batch_size=batch_size,
             )
-            # Convert to parquet
             n_frames = slp_to_parquet(
                 slp_path=slp_path,
                 session_id=sid,
@@ -307,9 +292,6 @@ def run_batch_inference(
     return pd.DataFrame(results)
 
 
-# ---------------------------------------------------------------------------
-# SLP -> Parquet conversion
-# ---------------------------------------------------------------------------
 
 def slp_to_parquet(
     slp_path: Path,
@@ -338,7 +320,6 @@ def slp_to_parquet(
 
     labels = sleap.load_file(str(slp_path))
 
-    # Extract predictions into a flat table
     rows = []
     skeleton = labels.skeletons[0] if labels.skeletons else None
     node_names = [n.name for n in skeleton.nodes] if skeleton else []
@@ -350,7 +331,6 @@ def slp_to_parquet(
                 "frame_idx": int(frame_idx),
                 "instance": int(inst_idx),
             }
-            # Instance-level score
             if hasattr(inst, "score") and inst.score is not None:
                 row["instance_score"] = float(inst.score)
 
@@ -373,20 +353,17 @@ def slp_to_parquet(
 
     df = pd.DataFrame(rows)
 
-    # Filter by confidence if requested
     if confidence_threshold > 0:
         score_cols = [c for c in df.columns if c.endswith("_score") and c != "instance_score"]
         if score_cols:
             mean_score = df[score_cols].mean(axis=1)
             df = df[mean_score >= confidence_threshold].reset_index(drop=True)
 
-    # Attach timestamps from frame_times
     frame_times = load_frame_times(session_id=session_id, camera=camera)
     if not frame_times.empty:
         ft = frame_times[["frame_idx", "t"]].drop_duplicates("frame_idx")
         df = df.merge(ft, on="frame_idx", how="left")
     else:
-        # Try loading camera timestamps directly
         from features_pose import _load_camera_timestamps
         ts = _load_camera_timestamps(session_id, camera)
         if ts is not None:
@@ -401,7 +378,6 @@ def slp_to_parquet(
     df["session_id"] = session_id
     df["camera"] = camera
 
-    # Reorder columns
     front = ["session_id", "camera", "frame_idx", "instance", "t"]
     rest = [c for c in df.columns if c not in front]
     df = df[[c for c in front if c in df.columns] + rest]
@@ -428,13 +404,10 @@ def _count_slp_frames(slp_path: Path) -> int:
         return 0
 
 
-# ---------------------------------------------------------------------------
-# SLEAP CSV import (for existing hand-labeled exports)
-# ---------------------------------------------------------------------------
 
 def auto_discover_sleap_csvs(
     session_id: int | None = None,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Find all SLEAP CSV exports in outputs/pose/ and outputs/labeling/.
 
     Returns list of dicts with keys: path, session_id, camera (inferred from filename).
@@ -452,7 +425,6 @@ def auto_discover_sleap_csvs(
         if not base.exists():
             continue
         for csv_path in base.rglob("*.csv"):
-            # Try to infer session_id and camera from filename/path
             name = csv_path.stem.lower()
             parts = str(csv_path).lower()
             sid = _extract_session_id(parts)
@@ -492,9 +464,6 @@ def _extract_camera(path_text: str, filename: str) -> str | None:
     return None
 
 
-# ---------------------------------------------------------------------------
-# Training helper (wraps SLEAP CLI)
-# ---------------------------------------------------------------------------
 
 def train_sleap_model(
     labels_path: Path,
@@ -540,15 +509,13 @@ def train_sleap_model(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if config_path is not None and Path(config_path).exists():
-        # Use user-provided config
-        args = [
+            args = [
             str(config_path),
             str(labels_path),
             "--run_path", str(output_dir),
         ]
     else:
-        # Generate a sensible default single-instance config
-        args = [
+            args = [
             str(labels_path),
             "--run_path", str(output_dir),
             "--default_single",
@@ -562,9 +529,6 @@ def train_sleap_model(
     return output_dir
 
 
-# ---------------------------------------------------------------------------
-# Active learning: suggest which frames to label next
-# ---------------------------------------------------------------------------
 
 def suggest_frames_to_label(
     slp_path: Path,

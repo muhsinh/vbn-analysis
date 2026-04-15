@@ -65,11 +65,11 @@ MkDocs Material site. GitHub Actions deploys on push to `main` when `docs/` or `
 - **`io_nwb.py:62` FIXED (2026-04-14)**: `resolve_nwb_path` now returns `nwb_path or nwb_path_override` so the sessions.csv path is used when the SDK attribute is missing. NB00 also sets `os.environ.setdefault("ACCESS_MODE", "manual")` so notebooks default to manual mode.
 - **Notebook ROOT setup**: Fixed 2026-04-13 — notebooks 00–04, 07–09 now use conditional `if not (ROOT / "src").exists(): ROOT = ROOT.parent`. Works from repo root or inside `notebooks/`.
 
-## Local Data (as of 2026-04-14)
+## Local Data (as of 2026-04-15)
 
 Sessions with real NWB data:
 - `1043752325` → NWB path populated in sessions.csv. File was truncated (203 MB, expected ~3 GB) — re-download in progress via `scripts/redownload_nwb.py`.
-- `1055240613` → NWB path populated in sessions.csv. File was truncated (130 MB, expected ~2.99 GB) — re-download in progress. Videos not yet downloaded.
+- `1055240613` → NWB 2.78 GB downloaded. Videos **downloaded**: eye.mp4 (~2.23 GB), face.mp4 (~2.23 GB), side.mp4 (~2.23 GB). All stored locally.
 
 `sessions.csv` has NWB paths populated for both sessions. All others fall back to mock.
 
@@ -88,14 +88,21 @@ cd /Users/muh/projects/vbn-analysis
 jupyter lab
 ```
 
-## Pose Estimation Tools Under Consideration
+## Pose Estimation Status (as of 2026-04-15)
 
-Beyond SLEAP (currently installed, ~150 frames labeled):
-- **Facemap** (`pip install facemap`) — eye.mp4: use pupil tracker (zero labels, outputs area/position/blink). face.mp4: use SVD motion energy (zero labels, angle-agnostic); keypoint model needs ~20 frames fine-tune (bottom-up angle, pretrained model was side-face).
-- **SuperAnimal (DLC)** (`pip install deeplabcut`) — side.mp4 only. Use `superanimal_quadruped` (NOT topviewmouse — that's overhead only). Head-fix hardware may confuse head keypoints; body/limb/tail reliable.
-- **Lightning Pose** — semi-supervised training using existing 150 SLEAP labels + unlabeled video. 2–4x fewer labels needed vs supervised-only.
-- **Keypoint-MoSeq** (`pip install keypoint-moseq`) — behavioral syllable segmentation from pose output. State-of-the-art (Nature Methods 2024). Auto-discovers syllable count, handles tracking noise.
+- **SLEAP** — installed, ~150 frames labeled on side.mp4. NOT used for inference; labels available for Lightning Pose semi-supervised training.
+- **Facemap** — **DONE locally**: eye.mp4 pupil tracking (area/position/blink, zero labels) + face.mp4 SVD motion energy (top PCs, zero labels). Outputs in `outputs/pose/`.
+- **SuperAnimal-quadruped (DLC 3.0.0rc13)** — **inference IN PROGRESS on Modal L40S** (~2 hr ETA from 2026-04-15). Produces `outputs/pose/session_1055240613_superanimal.h5`. Use `superanimal_quadruped` + `hrnet_w32` + `fasterrcnn_resnet50_fpn_v2`, `scale_list=[200]`. Head-fix hardware may confuse head keypoints; body/limb/tail reliable. det_b patched via regex on DLC source (subprocess isolation required).
+- **Lightning Pose** — planned, semi-supervised using 150 SLEAP labels. Not started.
+- **Keypoint-MoSeq** — planned for behavioral syllable segmentation after SuperAnimal H5 complete. NOT implemented yet — do not claim AR-HMM motifs exist.
 - **DO NOT USE**: DANNCE (requires overlapping multi-camera geometry), MotionMapper (wrong for mice).
+
+### Modal SuperAnimal Infrastructure
+- Script: `scripts/run_superanimal.py` — standalone, downloads side.mp4 from Allen S3, runs inference on any GPU machine
+- Notebook: `notebooks/10_Modal_SuperAnimal_Inference.ipynb` — Modal.com cloud inference (L40S GPU, ~$2/run from $30 credits)
+- Modal app: `vbn-superanimal`, volume: `vbn-superanimal-output`
+- Throughput on L40S: ~74 it/s with det_b=112 (vs ~7 it/s on 2x T4 Kaggle)
+- DLC batch size patch: DLC 3.x ignores `detector_batch_size` kwarg — must patch `pose_estimation_pytorch/apis/videos.py` source and delete `.pyc` before spawning subprocess
 
 ## Neural-Behavior Analysis Tools Under Consideration
 
@@ -111,7 +118,7 @@ Discovered 2026-04-13 via NWB deep dive:
 3. ~~**Running speed not extracted**~~ — **FIXED 2026-04-14** via `io_sessions.SessionBundle.load_running_speed()` + NB03.
 4. **Stimulus presentations not extracted** — `nwb.intervals["stimulus_presentations"]`. Needed for flash-locked PETHs, active vs. passive epoch split, image decoding. HIGH PRIORITY (see Literature section).
 5. ~~**Trial features gutted**~~ — **FIXED 2026-04-14**: `extract_trials()` now keeps hit/miss/FA/CR, response_latency, image identity, change_time_no_display_delay, go/catch.
-6. **Eye tracking incomplete** — no blink filtering (`likely_blink`), pupil position/corneal reflection unused.
+6. ~~**Eye tracking incomplete**~~ — **FIXED 2026-04-15**: `derive_eye_features` rewritten to use structured VBN columns (pupil_area, pupil_x/y, likely_blink); blink-masked z-score, position z-scores, and velocity now computed. Remaining gap: corneal reflection tracking unused.
 7. **Licking/rewards never extracted** — `nwb.processing["licking"]`, `nwb.processing["rewards"]`.
 8. **Active vs. passive replay epoch never split** — the VBN dataset has both in every session; the passive epoch is the highest-value unused signal in the entire dataset (see Literature).
 9. **No session-level engagement filter** — many sessions have d-prime < 0.5 (mice at chance). Including them contaminates all analyses. Add d-prime filter per session.
@@ -137,12 +144,13 @@ Discovered 2026-04-13 via NWB deep dive:
 ### Recommended analytical additions (priority order)
 1. ~~Extract `stimulus_presentations` epoch labels~~ — **DONE 2026-04-14**
 2. ~~Area stratification by `ecephys_structure_acronym`~~ — **DONE 2026-04-14**
-3. Pre-stimulus running + pupil as trial-level covariates in PETH analysis
-4. Session d-prime filter (drop d-prime < 0.5)
-5. Face SVD via Facemap (zero labels, top 10-20 PCs as encoding covariates)
-6. Replace RidgeCV with banded ridge (`pip install himalaya`) for unbiased variance partitioning
-7. Noise correlation matrix by area and behavioral state
-8. CEBRA for multi-session latent embedding
+3. ~~Face SVD via Facemap (zero labels, top 10-20 PCs as encoding covariates)~~ — **DONE 2026-04-15**
+4. ~~SuperAnimal body keypoints (side.mp4)~~ — **IN PROGRESS 2026-04-15** (Modal L40S run)
+5. Pre-stimulus running + pupil as trial-level covariates in PETH analysis
+6. Session d-prime filter (drop d-prime < 0.5)
+7. Replace RidgeCV with banded ridge (`pip install himalaya`) for unbiased variance partitioning
+8. Noise correlation matrix by area and behavioral state
+9. CEBRA for multi-session latent embedding
 
 ## Correct AllenSDK 2.16.0 Session API
 
@@ -160,7 +168,7 @@ session.channels                 # electrode metadata + CCF coordinates
 session.get_lfp(probe_id)        # xarray, 1250Hz (separate probe NWB file)
 ```
 
-Note: `session.nwb_path` does NOT exist — this is the bug in `io_nwb.py:62`.
+Note: `session.nwb_path` does NOT exist. `resolve_nwb_path` now correctly handles this: in SDK mode it triggers the download for caching purposes, then always returns `nwb_path_override` from sessions.csv.
 
 ## Recent Changes
 
@@ -188,3 +196,10 @@ Note: `session.nwb_path` does NOT exist — this is the bug in `io_nwb.py:62`.
 | 2026-04-14 | NB08 new cell 10: per-area encoding R2 + active/passive epoch split. Prints Delta R2 (active - passive) — the key VBN comparison. NB03 updated to extract + cache stimulus presentations. |
 | 2026-04-14 | NB06 rewritten: Facemap pupil tracking (eye.mp4, zero labels), Facemap SVD motion energy (face.mp4, zero labels), SuperAnimal-quadruped (side.mp4, zero labels). Graceful skip if video missing. |
 | 2026-04-14 | NB07 rewritten: aligns Facemap + SuperAnimal frame indices to NWB seconds via frame_times (linear fallback), blink filtering + interpolation, body_speed from keypoint velocity, merges all pose signals to single pose_features.parquet. |
+| 2026-04-15 | All three videos for session 1055240613 downloaded locally (eye/face/side, ~2.23 GB each). Facemap pupil + face SVD completed locally. |
+| 2026-04-15 | NB06: MJPEG transcoding step added to multi-GPU inference path (H.264 → MJPEG AVI before SuperAnimal). Note: bottleneck is FasterRCNN GPU compute, not CPU decode — MJPEG didn't change throughput significantly. |
+| 2026-04-15 | Created `scripts/run_superanimal.py`: standalone inference script with S3 auto-download, cross-platform DLC batch size patch, subprocess isolation, size verification. |
+| 2026-04-15 | Created `notebooks/10_Modal_SuperAnimal_Inference.ipynb`: Modal.com L40S cloud inference, S3 download inside cloud, DLC batch patch + subprocess, output saved to Modal Volume then downloaded to `outputs/pose/`. |
+| 2026-04-15 | Code quality pass: dependency graph traced across all 17 src/ modules. No circular imports found. Fixed one architectural violation (io_video → qc top-level coupling removed; qc import made lazy inside _compute_frame_metrics). Promoted unnecessary lazy imports to top-level in io_sessions.py (features_eye, io_video) and reports.py (timebase). |
+| 2026-04-15 | Legacy/deprecated code removal pass: (1) `resolve_nwb_path` — removed dead `hasattr(session, "nwb_path")` shim (attribute never exists); (2) `inspect_modalities` — fixed wrong eye check (`processing["eye_tracking"]` → `acquisition["EyeTracking"]`); (3) `cross_correlation.py` — removed unused `mean_squared_error` + `KFold` imports; (4) `io_sessions.py` — eliminated inline `from config import ROOT_DIR` inside nested function; (5) `io_nwb.py` — removed unused `Provenance` import; (6) `features_eye.derive_eye_features` — rewrote to handle VBN structured columns (was silently discarding pupil_x/y/angle/likely_blink). |
+| 2026-04-15 | SuperAnimal inference running on Modal L40S at 74 it/s with det_b=112 (~2 hr ETA). Will produce `outputs/pose/session_1055240613_superanimal.h5`. Next: run NB07 alignment, then NB08 body_speed → delta R² check. |

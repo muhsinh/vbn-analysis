@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -10,53 +10,8 @@ import pandas as pd
 from config import get_config, make_provenance
 from io_s3 import list_video_assets as list_s3_assets
 from io_s3 import download_asset
-from qc import compute_video_qc
 from timebase import write_parquet_with_timebase
 
-
-def create_preview_clip(video_path: Path, output_path: Path, max_seconds: int = 5) -> Path | None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        import subprocess
-
-        subprocess.check_call(
-            [
-                "ffmpeg",
-                "-y",
-                "-i",
-                str(video_path),
-                "-t",
-                str(max_seconds),
-                "-c",
-                "copy",
-                str(output_path),
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        return output_path
-    except Exception:
-        try:
-            import cv2
-        except ImportError:
-            return None
-        cap = cv2.VideoCapture(str(video_path))
-        if not cap.isOpened():
-            return None
-        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        writer = cv2.VideoWriter(str(output_path), fourcc, fps, (int(cap.get(3)), int(cap.get(4))))
-        max_frames = int(fps * max_seconds)
-        count = 0
-        while count < max_frames:
-            ok, frame = cap.read()
-            if not ok:
-                break
-            writer.write(frame)
-            count += 1
-        cap.release()
-        writer.release()
-        return output_path
 
 
 def load_timestamps(path: Path) -> np.ndarray | None:
@@ -76,8 +31,8 @@ def load_timestamps(path: Path) -> np.ndarray | None:
     return None
 
 
-def _candidate_roots(session_id: int, video_dir: Path | None, cache_dir: Path | None) -> List[Path]:
-    roots: List[Path] = []
+def _candidate_roots(session_id: int, video_dir: Path | None, cache_dir: Path | None) -> list[Path]:
+    roots: list[Path] = []
     if video_dir:
         video_dir = Path(video_dir)
         roots.extend(
@@ -91,7 +46,7 @@ def _candidate_roots(session_id: int, video_dir: Path | None, cache_dir: Path | 
         roots.append(Path(cache_dir) / str(session_id) / "behavior_videos")
     # De-dup while preserving order
     seen = set()
-    uniq: List[Path] = []
+    uniq: list[Path] = []
     for root in roots:
         key = str(root)
         if key in seen:
@@ -101,7 +56,7 @@ def _candidate_roots(session_id: int, video_dir: Path | None, cache_dir: Path | 
     return uniq
 
 
-def _find_first(root: Path, candidates: List[str]) -> Path | None:
+def _find_first(root: Path, candidates: list[str]) -> Path | None:
     for name in candidates:
         path = root / name
         if path.exists():
@@ -114,7 +69,7 @@ def _resolve_local_assets(
     camera: str,
     video_dir: Path | None,
     cache_dir: Path | None,
-) -> Dict[str, Path | None]:
+) -> dict[str, Path | None]:
     roots = _candidate_roots(session_id, video_dir, cache_dir)
     video_path = None
     ts_path = None
@@ -139,9 +94,9 @@ def _compute_frame_metrics(
     session_id: int,
     camera: str,
     timestamps: np.ndarray | None,
-) -> tuple[pd.DataFrame | None, Dict[str, Any], List[str]]:
-    qc_flags: List[str] = []
-    metrics: Dict[str, Any] = {
+) -> tuple[pd.DataFrame | None, dict[str, Any], list[str]]:
+    qc_flags: list[str] = []
+    metrics: dict[str, Any] = {
         "n_frames": None,
         "fps_est": None,
         "t0": None,
@@ -181,6 +136,7 @@ def _compute_frame_metrics(
         if med > 0:
             metrics["fps_est"] = 1.0 / med
 
+    from qc import compute_video_qc  # local import: qc is a leaf module; kept here to avoid io_video → qc top-level coupling
     qc = compute_video_qc(frame_times_df[["frame_idx", "t"]], metrics["fps_est"])
     if qc.get("monotonic") is False:
         qc_flags.append("NON_MONOTONIC")
@@ -190,7 +146,7 @@ def _compute_frame_metrics(
     return frame_times_df, metrics, qc_flags
 
 
-def _join_flags(flags: List[str]) -> str:
+def _join_flags(flags: list[str]) -> str:
     uniq = []
     seen = set()
     for flag in flags:
@@ -217,8 +173,8 @@ def build_video_assets(
 
     s3_assets = list_s3_assets(session_id, cameras=cfg.video_cameras)
 
-    asset_rows: List[Dict[str, Any]] = []
-    frame_times_rows: List[pd.DataFrame] = []
+    asset_rows: list[dict[str, Any]] = []
+    frame_times_rows: list[pd.DataFrame] = []
 
     for camera in cfg.video_cameras:
         local_assets = _resolve_local_assets(
@@ -227,7 +183,7 @@ def build_video_assets(
             video_dir=video_dir,
             cache_dir=cfg.video_cache_dir,
         )
-        qc_flags: List[str] = []
+        qc_flags: list[str] = []
 
         local_video = local_assets["video"]
         local_ts = local_assets["timestamps"]
@@ -320,16 +276,21 @@ def build_video_assets(
     return assets_df
 
 
+def _drop_existing_session_camera_keys(existing: pd.DataFrame, keys: set) -> pd.DataFrame:
+    if existing.empty:
+        return existing
+    existing_keys = existing.set_index(["session_id", "camera"]).index
+    mask = [key not in keys for key in existing_keys]
+    return existing.loc[mask].reset_index(drop=True)
+
+
 def _upsert_assets(new_rows: pd.DataFrame, path: Path) -> Path:
     if new_rows is None or new_rows.empty:
         return path
     if path.exists():
         existing = pd.read_parquet(path)
         keys = set(map(tuple, new_rows[["session_id", "camera"]].values))
-        if not existing.empty:
-            existing_keys = existing.set_index(["session_id", "camera"]).index
-            mask = [key not in keys for key in existing_keys]
-            existing = existing.loc[mask].reset_index(drop=True)
+        existing = _drop_existing_session_camera_keys(existing, keys)
         combined = pd.concat([existing, new_rows], ignore_index=True)
     else:
         combined = new_rows
@@ -343,10 +304,7 @@ def _upsert_frame_times(new_rows: pd.DataFrame, path: Path) -> Path:
     if path.exists():
         existing = pd.read_parquet(path)
         keys = set(map(tuple, new_rows[["session_id", "camera"]].drop_duplicates().values))
-        if not existing.empty:
-            existing_keys = existing.set_index(["session_id", "camera"]).index
-            mask = [key not in keys for key in existing_keys]
-            existing = existing.loc[mask].reset_index(drop=True)
+        existing = _drop_existing_session_camera_keys(existing, keys)
         combined = pd.concat([existing, new_rows], ignore_index=True)
     else:
         combined = new_rows

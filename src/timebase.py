@@ -3,28 +3,23 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Iterable
 
 import numpy as np
 import pandas as pd
 
+from vbn_types import SpikeTimesDict, Provenance
+
 
 CANONICAL_TIMEBASE = "nwb_seconds"
 
-
-def ensure_time_column(df: pd.DataFrame, time_col: str = "t") -> pd.DataFrame:
-    if time_col not in df.columns:
-        raise ValueError(f"Expected time column '{time_col}' in dataframe")
-    df = df.copy()
-    df[time_col] = pd.to_numeric(df[time_col], errors="coerce")
-    return df
 
 
 def write_parquet_with_timebase(
     df: pd.DataFrame,
     path: Path,
     timebase: str = CANONICAL_TIMEBASE,
-    provenance: Dict[str, Any] | None = None,
+    provenance: Provenance | None = None,
     required_columns: Iterable[str] | None = None,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -52,7 +47,9 @@ def write_parquet_with_timebase(
         merged[b"timebase"] = timebase.encode("utf-8")
         table = table.replace_schema_metadata(merged)
         pq.write_table(table, path)
-    except Exception:
+    except Exception:  # noqa: BLE001
+        # Fall back to plain pandas parquet when pyarrow is missing or fails
+        # to embed schema metadata (e.g. arrow schema incompatibility).
         df_to_write.to_parquet(path, index=False)
 
     # Sidecar metadata for tool-agnostic access
@@ -62,7 +59,7 @@ def write_parquet_with_timebase(
     return path
 
 
-def write_npz_with_provenance(data: Dict[str, Any], path: Path, provenance: Dict[str, Any]) -> Path:
+def write_npz_with_provenance(data: SpikeTimesDict, path: Path, provenance: Provenance) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(path, **data)
     sidecar = path.with_suffix(path.suffix + ".meta.json")
@@ -78,7 +75,7 @@ def build_time_grid(start: float, end: float, bin_size_s: float) -> np.ndarray:
     return start + np.arange(n_bins) * bin_size_s
 
 
-def bin_spike_times(spike_times: Dict[str, np.ndarray], time_grid: np.ndarray, bin_size_s: float) -> pd.DataFrame:
+def bin_spike_times(spike_times: SpikeTimesDict, time_grid: np.ndarray, bin_size_s: float) -> pd.DataFrame:
     if spike_times is None:
         return pd.DataFrame()
     counts = {}

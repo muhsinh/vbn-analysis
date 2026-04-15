@@ -8,22 +8,21 @@ Provides the core analyses for correlating behavior with neural activity:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from vbn_types import SpikeTimesDict
 
-# ---------------------------------------------------------------------------
-# Peri-Event Time Histograms (PETHs)
-# ---------------------------------------------------------------------------
+
 
 def compute_peth(
     spike_times: np.ndarray,
     event_times: np.ndarray,
-    window: Tuple[float, float] = (-0.5, 1.0),
+    window: tuple[float, float] = (-0.5, 1.0),
     bin_size: float = 0.01,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Compute a peri-event time histogram for a single unit.
 
     Parameters
@@ -85,12 +84,12 @@ def compute_peth(
 
 
 def compute_population_peth(
-    spike_times_dict: Dict[str, np.ndarray],
+    spike_times_dict: SpikeTimesDict,
     event_times: np.ndarray,
-    window: Tuple[float, float] = (-0.5, 1.0),
+    window: tuple[float, float] = (-0.5, 1.0),
     bin_size: float = 0.01,
-    unit_ids: List[str] | None = None,
-) -> Dict[str, Any]:
+    unit_ids: list[str] | None = None,
+) -> dict[str, Any]:
     """Compute PETHs for all units in the population.
 
     Returns
@@ -123,17 +122,14 @@ def compute_population_peth(
     }
 
 
-# ---------------------------------------------------------------------------
-# Trial-averaged responses by condition
-# ---------------------------------------------------------------------------
 
 def trial_averaged_rates(
-    spike_times_dict: Dict[str, np.ndarray],
+    spike_times_dict: SpikeTimesDict,
     trials: pd.DataFrame,
     group_col: str = "trial_type",
-    window: Tuple[float, float] = (-0.5, 1.0),
+    window: tuple[float, float] = (-0.5, 1.0),
     bin_size: float = 0.025,
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """Compute mean firing rates per condition per unit.
 
     Parameters
@@ -170,12 +166,9 @@ def trial_averaged_rates(
     return results
 
 
-# ---------------------------------------------------------------------------
-# Population vectors and dimensionality reduction
-# ---------------------------------------------------------------------------
 
 def build_population_vectors(
-    spike_times_dict: Dict[str, np.ndarray],
+    spike_times_dict: SpikeTimesDict,
     time_grid: np.ndarray,
     bin_size: float,
 ) -> np.ndarray:
@@ -200,7 +193,7 @@ def reduce_population(
     pop_matrix: np.ndarray,
     method: str = "pca",
     n_components: int = 3,
-) -> Tuple[np.ndarray, Any]:
+) -> tuple[np.ndarray, Any]:
     """Reduce dimensionality of population activity.
 
     Parameters
@@ -239,16 +232,13 @@ def reduce_population(
     raise ValueError(f"Unknown method: {method}")
 
 
-# ---------------------------------------------------------------------------
-# Single-unit selectivity
-# ---------------------------------------------------------------------------
 
 def compute_selectivity_index(
     spike_times: np.ndarray,
     condition_a_times: np.ndarray,
     condition_b_times: np.ndarray,
-    window: Tuple[float, float] = (0.0, 0.5),
-) -> Dict[str, float]:
+    window: tuple[float, float] = (0.0, 0.5),
+) -> dict[str, float]:
     """Compute how selective a unit is between two conditions.
 
     Returns d-prime and mean rate difference.
@@ -277,9 +267,10 @@ def compute_selectivity_index(
     # Mann-Whitney U test
     try:
         from scipy.stats import mannwhitneyu
-        _, p_val = mannwhitneyu(rates_a, rates_b, alternative="two-sided")
-    except Exception:
+    except ImportError:
         p_val = 1.0
+    else:
+        _, p_val = mannwhitneyu(rates_a, rates_b, alternative="two-sided")
 
     return {
         "d_prime": float(d_prime),
@@ -291,10 +282,10 @@ def compute_selectivity_index(
 
 
 def screen_selective_units(
-    spike_times_dict: Dict[str, np.ndarray],
+    spike_times_dict: SpikeTimesDict,
     condition_a_times: np.ndarray,
     condition_b_times: np.ndarray,
-    window: Tuple[float, float] = (0.0, 0.5),
+    window: tuple[float, float] = (0.0, 0.5),
     p_threshold: float = 0.05,
 ) -> pd.DataFrame:
     """Screen all units for selectivity between two conditions.

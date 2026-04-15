@@ -1,7 +1,7 @@
 """QC utilities for alignment and signal sanity checks."""
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -28,7 +28,7 @@ def estimate_fps(times: np.ndarray) -> float | None:
     return 1.0 / dt
 
 
-def compute_video_qc(frame_times: pd.DataFrame, fps_nominal: float | None) -> Dict[str, Any]:
+def compute_video_qc(frame_times: pd.DataFrame, fps_nominal: float | None) -> dict[str, Any]:
     times = frame_times["t"].to_numpy()
     monotonic = check_monotonic(times)
     dropped = detect_dropped_frames(times)
@@ -45,7 +45,7 @@ def compute_video_qc(frame_times: pd.DataFrame, fps_nominal: float | None) -> Di
     }
 
 
-def eye_qc_summary(eye_df: pd.DataFrame) -> Dict[str, Any]:
+def eye_qc_summary(eye_df: pd.DataFrame) -> dict[str, Any]:
     summary = {}
     if eye_df is None or eye_df.empty:
         return {"available": False}

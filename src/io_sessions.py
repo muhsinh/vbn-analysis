@@ -1,15 +1,22 @@
 """Session discovery and bundle orchestration."""
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 import io_nwb
-from config import get_config
+from config import ROOT_DIR, get_config, make_provenance
+from vbn_types import SpikeTimesDict
+from features_eye import derive_eye_features
+from io_video import build_video_assets
+from io_video import load_frame_times as _load_frame_times_impl
 from reports import setup_session_logger
+from timebase import write_parquet_with_timebase
 
 
 REQUIRED_SESSIONS_COLUMNS = ["session_id", "nwb_path", "video_dir", "notes"]
@@ -82,10 +89,10 @@ class SessionBundle:
     qc_flags: list[str] = field(default_factory=list)
     alignment_qc: dict[str, Any] = field(default_factory=dict)
 
-    def ensure_logger(self):
+    def ensure_logger(self) -> logging.Logger:
         return setup_session_logger(self.session_id)
 
-    def load_spikes(self) -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
+    def load_spikes(self) -> tuple[pd.DataFrame | None, SpikeTimesDict | None]:
         cfg = get_config()
         logger = self.ensure_logger()
         outputs_dir = cfg.outputs_dir / "neural"
@@ -152,8 +159,6 @@ class SessionBundle:
 
         if eye_path.exists():
             return pd.read_parquet(eye_path)
-
-        from features_eye import derive_eye_features
 
         with io_nwb.open_nwb_handle(self.nwb_path, mock_mode=cfg.mock_mode) as nwb:
             eye_raw = io_nwb.extract_eye_tracking(nwb)
@@ -229,8 +234,6 @@ class SessionBundle:
             return None
 
         cache_path.parent.mkdir(parents=True, exist_ok=True)
-        from timebase import write_parquet_with_timebase
-        from config import make_provenance
         write_parquet_with_timebase(
             running, cache_path,
             provenance=make_provenance(self.session_id, "nwb"),
@@ -240,7 +243,6 @@ class SessionBundle:
         return running
 
     def load_video_assets(self) -> pd.DataFrame:
-        from io_video import build_video_assets
         cfg = get_config()
         logger = self.ensure_logger()
         outputs_dir = cfg.outputs_dir / "video"
@@ -258,8 +260,7 @@ class SessionBundle:
         return assets
 
     def load_frame_times(self, camera: str | None = None) -> pd.DataFrame:
-        from io_video import load_frame_times
-        return load_frame_times(session_id=self.session_id, camera=camera)
+        return _load_frame_times_impl(session_id=self.session_id, camera=camera)
 
 
 def get_session_bundle(
@@ -286,7 +287,6 @@ def get_session_bundle(
                 return None
             p = Path(p_str)
             if not p.is_absolute():
-                from config import ROOT_DIR
                 p = ROOT_DIR / p
             return p
 

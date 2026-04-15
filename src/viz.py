@@ -1,14 +1,18 @@
 """Visualization helpers for notebooks."""
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
+
+from matplotlib.axes import Axes
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from vbn_types import SpikeTimesDict
 
-def plot_raster(spike_times: Dict[str, np.ndarray], max_units: int = 50) -> None:
+
+def plot_raster(spike_times: SpikeTimesDict, max_units: int = 50) -> None:
     if not spike_times:
         print("No spike times available for raster.")
         return
@@ -21,7 +25,7 @@ def plot_raster(spike_times: Dict[str, np.ndarray], max_units: int = 50) -> None
     plt.tight_layout()
 
 
-def plot_firing_rate_summary(spike_times: Dict[str, np.ndarray]) -> None:
+def plot_firing_rate_summary(spike_times: SpikeTimesDict) -> None:
     if not spike_times:
         print("No spike times available for firing rate summary.")
         return
@@ -88,12 +92,10 @@ def plot_behavior_summary(trials: pd.DataFrame | None) -> None:
         plt.tight_layout()
         return
 
-    # Map trial_type -> row index in the same order as counts plot
     type_to_row = {t: i for i, t in enumerate(labels)}
     rows = df["trial_type"].map(type_to_row).to_numpy()
     t0 = df["t_start"].to_numpy()
 
-    # Timeline: scatter at t_start; if t_end exists, draw a faint duration segment.
     ax_time.scatter(t0, rows, s=10, c="#111827", alpha=0.6, linewidths=0)
     if "t_end" in df.columns:
         t_end = pd.to_numeric(df["t_end"], errors="coerce").to_numpy()
@@ -209,7 +211,6 @@ def plot_video_alignment(frame_times: pd.DataFrame | None) -> None:
         ax_dt.axhline(gap_threshold, color="#ef4444", linewidth=1.0, linestyle="--", label="drop threshold")
 
     if gaps:
-        # Mark gap points (downsampled if many)
         gap_x = np.array([g["after_frame_idx"] for g in gaps], dtype=int)
         gap_y = np.array([g["gap_s"] for g in gaps], dtype=float)
         gstep = max(1, len(gap_x) // 2000)
@@ -266,7 +267,7 @@ def plot_motif_transition(motifs: pd.DataFrame | None) -> None:
     plt.tight_layout()
 
 
-def plot_model_performance(metrics: Dict[str, Any]) -> None:
+def plot_model_performance(metrics: dict[str, Any]) -> None:
     if not metrics:
         print("No metrics available.")
         return
@@ -292,12 +293,9 @@ def plot_fusion_sanity(fusion: pd.DataFrame, target_col: str) -> None:
     plt.tight_layout()
 
 
-# ---------------------------------------------------------------------------
-# Neural-behavior correlation visualizations
-# ---------------------------------------------------------------------------
 
 
-def plot_peth(peth_result: Dict[str, Any], unit_id: str = "", ax: Any = None) -> None:
+def plot_peth(peth_result: dict[str, Any], unit_id: str = "", ax: Axes | None = None) -> None:
     """Plot a peri-event time histogram with SEM shading."""
     if not peth_result or peth_result.get("n_trials", 0) == 0:
         print("No PETH data available.")
@@ -318,7 +316,7 @@ def plot_peth(peth_result: Dict[str, Any], unit_id: str = "", ax: Any = None) ->
     ax.grid(True, alpha=0.15)
 
 
-def plot_population_peth(pop_result: Dict[str, Any], title: str = "Population PETH") -> None:
+def plot_population_peth(pop_result: dict[str, Any], title: str = "Population PETH") -> None:
     """Plot population PETH as a heatmap (units x time)."""
     if not pop_result or pop_result.get("population_matrix", np.empty(0)).size == 0:
         print("No population PETH data.")
@@ -340,7 +338,7 @@ def plot_population_peth(pop_result: Dict[str, Any], title: str = "Population PE
 
 
 def plot_trial_comparison(
-    condition_peths: Dict[str, Dict[str, Any]],
+    condition_peths: dict[str, dict[str, Any]],
     unit_id: str | None = None,
 ) -> None:
     """Plot overlaid PETHs for different trial conditions."""
@@ -377,7 +375,7 @@ def plot_trial_comparison(
     plt.tight_layout()
 
 
-def plot_crosscorrelation(xcorr: Dict[str, Any], bin_size: float = 0.025) -> None:
+def plot_crosscorrelation(xcorr: dict[str, Any], bin_size: float = 0.025) -> None:
     """Plot cross-correlation function between neural and behavior."""
     if not xcorr:
         print("No cross-correlation data.")
@@ -399,7 +397,7 @@ def plot_crosscorrelation(xcorr: Dict[str, Any], bin_size: float = 0.025) -> Non
     plt.tight_layout()
 
 
-def plot_sliding_correlation(slide: Dict[str, Any], bin_size: float = 0.025) -> None:
+def plot_sliding_correlation(slide: dict[str, Any], bin_size: float = 0.025) -> None:
     """Plot sliding-window correlation over time."""
     if not slide or len(slide.get("correlations", [])) == 0:
         print("No sliding correlation data.")
@@ -429,7 +427,7 @@ def plot_sliding_correlation(slide: Dict[str, Any], bin_size: float = 0.025) -> 
     plt.tight_layout()
 
 
-def plot_encoding_decoding(enc_result: Dict[str, Any], dec_result: Dict[str, Any]) -> None:
+def plot_encoding_decoding(enc_result: dict[str, Any], dec_result: dict[str, Any]) -> None:
     """Plot encoding vs decoding model performance."""
     fig, ax = plt.subplots(figsize=(6, 3.5))
 
@@ -467,7 +465,7 @@ def plot_encoding_decoding(enc_result: Dict[str, Any], dec_result: Dict[str, Any
     plt.tight_layout()
 
 
-def plot_granger_summary(gc_n2b: Dict[str, Any], gc_b2n: Dict[str, Any]) -> None:
+def plot_granger_summary(gc_n2b: dict[str, Any], gc_b2n: dict[str, Any]) -> None:
     """Plot Granger causality results in both directions."""
     fig, ax = plt.subplots(figsize=(6, 3))
 

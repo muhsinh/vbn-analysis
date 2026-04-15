@@ -5,13 +5,14 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
-from config import get_config
+from config import get_config, make_provenance
+from timebase import write_parquet_with_timebase
 
-_LOGGERS: Dict[int, logging.Logger] = {}
+_LOGGERS: dict[int, logging.Logger] = {}
 
 
 def setup_session_logger(session_id: int) -> logging.Logger:
@@ -41,7 +42,7 @@ def build_artifact_registry(outputs_dir: Path | None = None) -> pd.DataFrame:
     if outputs_dir is None:
         outputs_dir = cfg.outputs_dir
 
-    records: List[Dict[str, Any]] = []
+    records: list[dict[str, Any]] = []
     for path in outputs_dir.rglob("*"):
         if path.is_dir():
             continue
@@ -70,8 +71,6 @@ def write_artifact_registry(outputs_dir: Path | None = None) -> Path:
     df = build_artifact_registry(outputs_dir)
     registry_path = outputs_dir / "reports" / "artifact_registry.parquet"
     outputs_dir.mkdir(parents=True, exist_ok=True)
-    from timebase import write_parquet_with_timebase
-    from config import make_provenance
     write_parquet_with_timebase(
         df,
         registry_path,
@@ -80,7 +79,7 @@ def write_artifact_registry(outputs_dir: Path | None = None) -> Path:
     return registry_path
 
 
-def parse_notebook_header(nb_path: Path) -> Dict[str, Any]:
+def parse_notebook_header(nb_path: Path) -> dict[str, Any]:
     try:
         import nbformat
         nb = nbformat.read(str(nb_path), as_version=4)
@@ -90,15 +89,15 @@ def parse_notebook_header(nb_path: Path) -> Dict[str, Any]:
         if first.cell_type != "markdown":
             return {}
         content = first.source
-    except Exception:
-        # fallback: try json
+    except (ImportError, OSError, ValueError):
+        # fallback: try raw JSON when nbformat is missing or the file is malformed
         try:
             data = json.loads(nb_path.read_text(encoding="utf-8"))
             cells = data.get("cells", [])
             if not cells:
                 return {}
             content = "".join(cells[0].get("source", []))
-        except Exception:
+        except (OSError, json.JSONDecodeError, KeyError):
             return {}
 
     # Extract YAML frontmatter block even if it is wrapped in an HTML comment.
@@ -118,11 +117,11 @@ def parse_notebook_header(nb_path: Path) -> Dict[str, Any]:
     header_text = "\n".join(lines[start + 1 : end])
     try:
         return yaml.safe_load(header_text) or {}
-    except Exception:
+    except yaml.YAMLError:
         return {}
 
 
-def validate_prerequisites(required_paths: List[str], base_dir: Path | None = None) -> List[str]:
+def validate_prerequisites(required_paths: list[str], base_dir: Path | None = None) -> list[str]:
     if base_dir is None:
         base_dir = get_config().outputs_dir
     missing = []
@@ -135,7 +134,7 @@ def validate_prerequisites(required_paths: List[str], base_dir: Path | None = No
     return missing
 
 
-def validate_artifact_schema(path: Path, required_columns: List[str]) -> bool:
+def validate_artifact_schema(path: Path, required_columns: list[str]) -> bool:
     if not path.exists():
         return False
     try:
@@ -143,7 +142,7 @@ def validate_artifact_schema(path: Path, required_columns: List[str]) -> bool:
         missing = [c for c in required_columns if c not in df.columns]
         if missing:
             return False
-    except Exception:
+    except (OSError, ValueError):
         return False
     # metadata sidecar
     sidecar = path.with_suffix(path.suffix + ".meta.json")
@@ -151,7 +150,7 @@ def validate_artifact_schema(path: Path, required_columns: List[str]) -> bool:
         return False
     try:
         meta = json.loads(sidecar.read_text(encoding="utf-8"))
-    except Exception:
+    except (OSError, json.JSONDecodeError):
         return False
     if meta.get("timebase") != "nwb_seconds":
         return False
@@ -166,8 +165,6 @@ def write_run_summary(summary: pd.DataFrame, outputs_dir: Path | None = None) ->
         outputs_dir = cfg.outputs_dir
     path = outputs_dir / "reports" / "run_summary.parquet"
     path.parent.mkdir(parents=True, exist_ok=True)
-    from timebase import write_parquet_with_timebase
-    from config import make_provenance
     write_parquet_with_timebase(
         summary,
         path,

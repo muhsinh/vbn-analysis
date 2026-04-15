@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 from urllib.parse import urlparse
 
 from config import get_config
@@ -47,10 +46,10 @@ def http_url(session_id: int, camera: str, kind: str, bucket: str | None = None,
     return f"https://{bucket_name}.s3.amazonaws.com/{key}"
 
 
-def list_video_assets(session_id: int, cameras: list[str] | None = None) -> Dict[str, Dict[str, str]]:
+def list_video_assets(session_id: int, cameras: list[str] | None = None) -> dict[str, dict[str, str]]:
     cfg = get_config()
     cams = cameras or cfg.video_cameras
-    assets: Dict[str, Dict[str, str]] = {}
+    assets: dict[str, dict[str, str]] = {}
     for camera in cams:
         assets[camera] = {
             "s3_uri_video": s3_uri(session_id, camera, "video", cfg.video_bucket, cfg.video_base_path),

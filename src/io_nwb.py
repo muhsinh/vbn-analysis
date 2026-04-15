@@ -4,13 +4,14 @@ from __future__ import annotations
 import contextlib
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterator, Tuple
+from typing import Any, Iterator
 
 import numpy as np
 import pandas as pd
 
-from config import get_config
+from config import get_config, make_provenance
 from timebase import write_parquet_with_timebase, write_npz_with_provenance
+from vbn_types import SpikeTimesDict
 
 
 @contextlib.contextmanager
@@ -55,19 +56,19 @@ def resolve_nwb_path(
     cache_dir = cfg.data_dir / "allensdk_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # Use AllenSDK cache to ensure NWB is available locally.
+    # Trigger AllenSDK download so the NWB file is cached locally, then
+    # return the override path (from sessions.csv) to the cached file.
+    # BehaviorEcephysSession does not expose a nwb_path attribute, so we
+    # cannot read the path back from the session object.
     try:
         cache = VisualBehaviorNeuropixelsProjectCache.from_s3_cache(cache_dir=str(cache_dir))
-        session = cache.get_ecephys_session(session_id)
-        nwb_path = Path(session.nwb_path) if hasattr(session, "nwb_path") else None
-        # session.nwb_path does not exist on BehaviorEcephysSession — fall back
-        # to the override path (populated from sessions.csv) when SDK returns None.
-        return nwb_path or nwb_path_override
+        cache.get_ecephys_session(session_id)
     except Exception:
-        return nwb_path_override
+        pass
+    return nwb_path_override
 
 
-def inspect_modalities(nwb: Any) -> Dict[str, bool]:
+def inspect_modalities(nwb: Any) -> dict[str, bool]:
     modalities = {
         "spikes": False,
         "trials": False,
@@ -78,30 +79,12 @@ def inspect_modalities(nwb: Any) -> Dict[str, bool]:
     if nwb is None:
         return modalities
 
-    try:
-        modalities["spikes"] = hasattr(nwb, "units") and nwb.units is not None
-    except Exception:
-        modalities["spikes"] = False
-
-    try:
-        modalities["trials"] = hasattr(nwb, "trials") and nwb.trials is not None
-    except Exception:
-        modalities["trials"] = False
-
-    try:
-        modalities["eye"] = "eye_tracking" in getattr(nwb, "processing", {})
-    except Exception:
-        modalities["eye"] = False
-
-    try:
-        modalities["behavior"] = "behavior" in getattr(nwb, "processing", {})
-    except Exception:
-        modalities["behavior"] = False
-
-    try:
-        modalities["stimulus"] = hasattr(nwb, "stimulus") and nwb.stimulus is not None
-    except Exception:
-        modalities["stimulus"] = False
+    modalities["spikes"] = hasattr(nwb, "units") and nwb.units is not None
+    modalities["trials"] = hasattr(nwb, "trials") and nwb.trials is not None
+    # VBN stores eye tracking in acquisition["EyeTracking"], not processing
+    modalities["eye"] = "EyeTracking" in getattr(nwb, "acquisition", {})
+    modalities["behavior"] = "behavior" in getattr(nwb, "processing", {})
+    modalities["stimulus"] = hasattr(nwb, "stimulus") and nwb.stimulus is not None
 
     return modalities
 
@@ -112,7 +95,7 @@ def extract_units_and_spikes(
     min_presence_ratio: float = 0.9,
     max_isi_violations: float = 0.5,
     max_amplitude_cutoff: float = 0.1,
-) -> Tuple[pd.DataFrame | None, Dict[str, Any] | None]:
+) -> tuple[pd.DataFrame | None, SpikeTimesDict | None]:
     """Extract units table and spike times from NWB, with quality filtering.
 
     Parameters
@@ -134,7 +117,6 @@ def extract_units_and_spikes(
     units_table = nwb.units
     units_df = units_table.to_dataframe() if hasattr(units_table, "to_dataframe") else pd.DataFrame(units_table)
 
-    # --- Quality filtering ---
     if quality_filter:
         n_before = len(units_df)
         if "quality" in units_df.columns:
@@ -150,7 +132,7 @@ def extract_units_and_spikes(
             print(f"    Quality filter: {n_before} → {n_after} units "
                   f"({n_before - n_after} removed, {100*n_after/n_before:.0f}% kept)")
 
-    spike_times: Dict[str, Any] = {}
+    spike_times: SpikeTimesDict = {}
     if "spike_times" in units_df.columns:
         for unit_id, times in units_df["spike_times"].items():
             spike_times[str(unit_id)] = np.asarray(times)
@@ -198,7 +180,6 @@ def extract_trials(nwb: Any) -> pd.DataFrame | None:
         "reward_time", "reward_volume",
         "initial_image_name", "change_image_name", "stimulus_name",
         "change_time_no_display_delay",
-        # legacy / pipeline columns
         "trial_type", "rewarded",
     ]
     keep_cols = [c for c in _keep if c in df.columns]
@@ -234,11 +215,8 @@ def extract_stimulus_presentations(nwb: Any) -> pd.DataFrame | None:
 
     try:
         available_keys = list(intervals.keys())
-    except Exception:
-        try:
-            available_keys = [k for k in intervals]
-        except Exception:
-            available_keys = []
+    except TypeError:
+        available_keys = [k for k in intervals]
 
     # Collect all *_presentations tables (including spontaneous — useful for
     # baseline firing rates, noise correlations, and state modulation baselines).
@@ -337,14 +315,13 @@ def extract_running_speed(nwb: Any) -> pd.DataFrame | None:
                 # Clip negative speeds (encoder artefact)
                 df["running"] = df["running"].clip(lower=0.0)
                 return df
-            except Exception:
+            except (AttributeError, ValueError, TypeError):
                 continue
 
     return None
 
 
 def extract_behavior_events(nwb: Any) -> pd.DataFrame | None:
-    # Try common sources in NWB processing modules
     if nwb is None:
         return None
 
@@ -363,7 +340,7 @@ def extract_behavior_events(nwb: Any) -> pd.DataFrame | None:
                     df = pd.DataFrame(data, columns=cols)
                     df.insert(0, "t", times)
                 events.append(df)
-            except Exception:
+            except (AttributeError, ValueError, TypeError):
                 continue
 
     if not events:
@@ -386,7 +363,6 @@ def extract_eye_tracking(nwb: Any) -> pd.DataFrame | None:
     if nwb is None:
         return None
 
-    # ── Primary: VBN EllipseEyeTracking in acquisition ───────────────────
     acquisition = getattr(nwb, "acquisition", {}) or {}
     if "EyeTracking" in acquisition:
         try:
@@ -394,9 +370,6 @@ def extract_eye_tracking(nwb: Any) -> pd.DataFrame | None:
             series = getattr(et, "spatial_series", {}) or {}
 
             pt = series.get("pupil_tracking")
-            if pt is None:
-                pt = series.get("pupil_tracking", None)
-
             if pt is not None:
                 times = np.asarray(pt.timestamps)
                 df = pd.DataFrame({"t": times})
@@ -433,10 +406,9 @@ def extract_eye_tracking(nwb: Any) -> pd.DataFrame | None:
                                 df["likely_blink"] = arr.astype(bool)
 
                 return df
-        except Exception:
+        except (AttributeError, ValueError, TypeError, KeyError):
             pass
 
-    # ── Fallback: processing["eye_tracking"] (older NWB format) ──────────
     processing = getattr(nwb, "processing", {}) or {}
     if "eye_tracking" not in processing:
         return None
@@ -453,7 +425,7 @@ def extract_eye_tracking(nwb: Any) -> pd.DataFrame | None:
                 df = pd.DataFrame(data, columns=cols)
                 df.insert(0, "t", times)
             return df
-        except Exception:
+        except (AttributeError, ValueError, TypeError):
             continue
 
     return None
@@ -461,13 +433,13 @@ def extract_eye_tracking(nwb: Any) -> pd.DataFrame | None:
 
 def save_units_and_spikes(
     units: pd.DataFrame,
-    spikes: Dict[str, Any],
+    spikes: SpikeTimesDict,
     units_path: Path,
     spikes_path: Path,
     session_id: int,
     alignment_method: str,
 ) -> None:
-    provenance = _provenance(session_id, alignment_method)
+    provenance = make_provenance(session_id, alignment_method)
     units_df = units.copy()
     if "unit_id" not in units_df.columns:
         units_df.insert(0, "unit_id", range(len(units_df)))
@@ -489,7 +461,7 @@ def save_behavior_tables(
     session_id: int,
     alignment_method: str,
 ) -> None:
-    provenance = _provenance(session_id, alignment_method)
+    provenance = make_provenance(session_id, alignment_method)
     if trials is not None:
         write_parquet_with_timebase(
             trials,
@@ -515,7 +487,7 @@ def save_stimulus_presentations(
     session_id: int,
     alignment_method: str,
 ) -> None:
-    provenance = _provenance(session_id, alignment_method)
+    provenance = make_provenance(session_id, alignment_method)
     required = ["t"] if "t" in stim_df.columns else None
     write_parquet_with_timebase(
         stim_df,
@@ -532,7 +504,7 @@ def save_eye_table(
     session_id: int,
     alignment_method: str,
 ) -> None:
-    provenance = _provenance(session_id, alignment_method)
+    provenance = make_provenance(session_id, alignment_method)
     write_parquet_with_timebase(
         eye_df,
         eye_path,
@@ -542,14 +514,9 @@ def save_eye_table(
     )
 
 
-def load_spike_times_npz(path: Path) -> Dict[str, Any]:
+def load_spike_times_npz(path: Path) -> SpikeTimesDict:
     data = np.load(path, allow_pickle=True)
     return {k: data[k] for k in data.files}
-
-
-def _provenance(session_id: int, alignment_method: str) -> Dict[str, Any]:
-    from config import make_provenance
-    return make_provenance(session_id, alignment_method)
 
 
 def _mock_nwb() -> Any:

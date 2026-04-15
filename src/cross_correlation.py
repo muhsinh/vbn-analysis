@@ -14,25 +14,22 @@ Provides:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import PoissonRegressor, Ridge, RidgeCV
-from sklearn.metrics import r2_score, mean_squared_error
-from sklearn.model_selection import KFold
+from sklearn.metrics import r2_score
 
+from vbn_types import SpikeTimesDict
 
-# ---------------------------------------------------------------------------
-# Time-lagged cross-correlation
-# ---------------------------------------------------------------------------
 
 def crosscorrelation(
     neural: np.ndarray,
     behavior: np.ndarray,
     max_lag: int = 50,
     normalize: bool = True,
-) -> Dict[str, np.ndarray]:
+) -> dict[str, np.ndarray]:
     """Compute cross-correlation between a neural and behavior signal.
 
     Parameters
@@ -57,11 +54,9 @@ def crosscorrelation(
     neural = np.asarray(neural, dtype=float)
     behavior = np.asarray(behavior, dtype=float)
 
-    # Remove means
     neural = neural - np.nanmean(neural)
     behavior = behavior - np.nanmean(behavior)
 
-    # Replace NaNs with 0 for correlation
     neural = np.nan_to_num(neural)
     behavior = np.nan_to_num(behavior)
 
@@ -131,16 +126,13 @@ def population_crosscorrelation(
     return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------------------
-# Sliding-window correlation
-# ---------------------------------------------------------------------------
 
 def sliding_correlation(
     neural: np.ndarray,
     behavior: np.ndarray,
     window_size: int = 100,
     step: int = 10,
-) -> Dict[str, np.ndarray]:
+) -> dict[str, np.ndarray]:
     """Compute correlation in sliding windows.
 
     Reveals WHEN neural-behavior coupling is strong vs weak over the session.
@@ -170,11 +162,9 @@ def sliding_correlation(
         n_win = neural[start:end]
         b_win = behavior[start:end]
 
-        # Skip windows with no variance
         if np.std(n_win) < 1e-10 or np.std(b_win) < 1e-10:
             continue
 
-        # Remove NaN pairs
         valid = np.isfinite(n_win) & np.isfinite(b_win)
         if valid.sum() < 10:
             continue
@@ -191,9 +181,6 @@ def sliding_correlation(
     }
 
 
-# ---------------------------------------------------------------------------
-# Encoding model: predict neural from behavior
-# ---------------------------------------------------------------------------
 
 def raised_cosine_basis(
     n_lag_bins: int,
@@ -279,9 +266,9 @@ def _forward_chain_r2(
     y: np.ndarray,
     n_folds: int,
     gap_bins: int,
-    alphas: List[float] | None = None,
+    alphas: list[float] | None = None,
     model_type: str = "ridge",
-) -> List[float]:
+) -> list[float]:
     """Forward-chain CV returning a list of per-fold R² scores.
 
     Test folds are always in the future relative to training, with a
@@ -290,7 +277,7 @@ def _forward_chain_r2(
     alphas = alphas or [0.01, 0.1, 1.0, 10.0, 100.0]
     n = len(y)
     block = n // (n_folds + 1)
-    scores: List[float] = []
+    scores: list[float] = []
     for i in range(1, n_folds + 1):
         test_start = i * block
         train_end = test_start - gap_bins
@@ -298,11 +285,8 @@ def _forward_chain_r2(
         if train_end < 10 or test_end <= test_start:
             continue
         m = _make_encoding_model(model_type) if model_type != "ridge" else RidgeCV(alphas=alphas)
-        try:
-            m.fit(X[:train_end], y[:train_end])
-            scores.append(r2_score(y[test_start:test_end], m.predict(X[test_start:test_end])))
-        except Exception as e:
-            print(f"[forward_chain_r2] fold {i} failed: {e}")
+        m.fit(X[:train_end], y[:train_end])
+        scores.append(r2_score(y[test_start:test_end], m.predict(X[test_start:test_end])))
     return scores
 
 
@@ -311,12 +295,12 @@ def fit_encoding_model(
     neural_target: np.ndarray,
     model_type: str = "ridge",
     n_folds: int = 5,
-    lags: List[int] | None = None,
+    lags: list[int] | None = None,
     gap_bins: int = 20,
     use_raised_cosine: bool = False,
     n_lag_bins: int = 40,
     n_basis: int = 10,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fit an encoding model: behavior -> neural activity.
 
     Uses true forward-chaining cross-validation: test folds are always
@@ -373,14 +357,10 @@ def fit_encoding_model(
     scores = _forward_chain_r2(X_arr, y, n_folds=n_folds, gap_bins=gap_bins, model_type=model_type)
 
     final_model = _make_encoding_model(model_type)
-    try:
-        final_model.fit(X_arr, y)
-    except Exception as e:
-        print(f"[fit_encoding_model] final fit failed: {e}")
-        final_model = None
+    final_model.fit(X_arr, y)
 
     importance = None
-    if final_model is not None and hasattr(final_model, "coef_"):
+    if hasattr(final_model, "coef_"):
         importance = np.abs(final_model.coef_)
 
     return {
@@ -397,7 +377,7 @@ def permutation_test(
     observed_r2: float,
     n_permutations: int = 500,
     **fit_kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generate a null R² distribution via circular shifts of the neural signal.
 
     Circular shifts preserve the autocorrelation structure of the neural
@@ -450,14 +430,14 @@ def permutation_test(
 
 
 def fit_multi_covariate_encoding_model(
-    covariate_dict: Dict[str, np.ndarray],
+    covariate_dict: dict[str, np.ndarray],
     neural_target: np.ndarray,
     bin_size: float = 0.025,
     gap_bins: int = 20,
     n_lag_bins: int = 40,
     n_basis: int = 8,
     n_permutations: int = 200,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Proper multi-covariate encoding model with variance partitioning.
 
     Fits a full model (all covariates) and reduced models (leaving out each
@@ -497,13 +477,11 @@ def fit_multi_covariate_encoding_model(
     n = len(neural_target)
     cov_names = list(covariate_dict.keys())
 
-    # Stack all covariates into design matrix (n_times, n_covariates)
     X_raw = np.column_stack([
         np.asarray(covariate_dict[k], dtype=float)[:n] for k in cov_names
     ])
     X_raw = np.nan_to_num(X_raw)
 
-    # Build raised cosine lag features
     X_full = _add_raised_cosine_lags(X_raw, n_lag_bins=n_lag_bins, n_basis=n_basis)
     y = np.asarray(neural_target, dtype=float)[n_lag_bins:n_lag_bins + len(X_full)]
 
@@ -514,15 +492,11 @@ def fit_multi_covariate_encoding_model(
     full_r2 = float(np.mean(scores_full)) if scores_full else np.nan
 
     m_final = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0])
-    try:
-        m_final.fit(X_full, y)
-        coef_full = m_final.coef_
-    except Exception as e:
-        print(f"[fit_multi_covariate] full model final fit failed: {e}")
+    m_final.fit(X_full, y)
+    coef_full = m_final.coef_
 
-    # Variance partitioning: drop one covariate at a time
-    unique_r2: Dict[str, float] = {}
-    coef_dict: Dict[str, Any] = {}
+    unique_r2: dict[str, float] = {}
+    coef_dict: dict[str, Any] = {}
 
     for drop_k in cov_names:
         keep = [k for k in cov_names if k != drop_k]
@@ -540,14 +514,12 @@ def fit_multi_covariate_encoding_model(
         reduced_r2 = float(np.mean(scores_red)) if scores_red else np.nan
         unique_r2[drop_k] = float(full_r2 - reduced_r2) if not np.isnan(reduced_r2) else np.nan
 
-    # Extract per-covariate coefficient blocks for interpretability
     if coef_full is not None:
         for fi, k in enumerate(cov_names):
             start_col = fi * n_basis
             coef_dict[k] = coef_full[start_col: start_col + n_basis]
 
-    # Permutation test on full model
-    perm_results: Dict[str, Any] = {}
+    perm_results: dict[str, Any] = {}
     if n_permutations > 0:
         from modeling import circular_shift
         rng = np.random.default_rng(0)
@@ -581,7 +553,7 @@ def fit_multi_covariate_encoding_model(
     }
 
 
-def _make_encoding_model(model_type: str):
+def _make_encoding_model(model_type: str) -> PoissonRegressor | RidgeCV:
     if model_type == "poisson":
         return PoissonRegressor(alpha=0.01, max_iter=500)
     elif model_type == "ridge":
@@ -589,7 +561,7 @@ def _make_encoding_model(model_type: str):
     raise ValueError(f"Unknown model type: {model_type}")
 
 
-def _add_lags(X: pd.DataFrame, lags: List[int]) -> pd.DataFrame:
+def _add_lags(X: pd.DataFrame, lags: list[int]) -> pd.DataFrame:
     """Add time-lagged copies of all columns (simple integer shift method)."""
     dfs = [X]
     for lag in lags:
@@ -605,17 +577,14 @@ def _add_lags(X: pd.DataFrame, lags: List[int]) -> pd.DataFrame:
     return result.reset_index(drop=True)
 
 
-# ---------------------------------------------------------------------------
-# Decoding model: predict behavior from neural
-# ---------------------------------------------------------------------------
 
 def fit_decoding_model(
     pop_matrix: np.ndarray,
     behavior_target: np.ndarray,
     n_folds: int = 5,
-    lags: List[int] | None = None,
+    lags: list[int] | None = None,
     gap_bins: int = 20,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fit a decoding model: neural -> behavior.
 
     "Given neural activity, can we predict what the animal is doing?"
@@ -654,13 +623,8 @@ def fit_decoding_model(
     scores = _forward_chain_r2(X_arr, y, n_folds=n_folds, gap_bins=gap_bins)
 
     final_model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0])
-    try:
-        final_model.fit(X_arr, y)
-    except Exception as e:
-        print(f"[fit_decoding_model] final fit failed: {e}")
-        final_model = None
-
-    importance = np.abs(final_model.coef_) if final_model is not None else None
+    final_model.fit(X_arr, y)
+    importance = np.abs(final_model.coef_) if hasattr(final_model, "coef_") else None
 
     return {
         "model": final_model,
@@ -670,15 +634,12 @@ def fit_decoding_model(
     }
 
 
-# ---------------------------------------------------------------------------
-# Granger-like causality
-# ---------------------------------------------------------------------------
 
 def granger_test(
     cause: np.ndarray,
     effect: np.ndarray,
     max_lag: int = 10,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Simple Granger causality test.
 
     Tests whether `cause` helps predict `effect` beyond the effect's own history.
@@ -698,7 +659,6 @@ def granger_test(
     if n < max_lag + 20:
         return {"f_statistic": 0.0, "p_value": 1.0, "r2_restricted": 0.0, "r2_full": 0.0, "improvement": 0.0}
 
-    # Build lagged matrices
     y = effect[max_lag:]
     X_restricted = np.column_stack([effect[max_lag - i - 1: n - i - 1] for i in range(max_lag)])
     X_cause_lags = np.column_stack([cause[max_lag - i - 1: n - i - 1] for i in range(max_lag)])
@@ -706,7 +666,6 @@ def granger_test(
 
     y = y[:len(X_restricted)]
 
-    # Fit models
     model_r = Ridge(alpha=0.1)
     model_f = Ridge(alpha=0.1)
 
@@ -722,7 +681,6 @@ def granger_test(
     r2_r = r2_score(y, pred_r)
     r2_f = r2_score(y, pred_f)
 
-    # F-test
     df1 = max_lag  # additional parameters in full model
     df2 = len(y) - 2 * max_lag
     if df2 <= 0 or ss_f <= 0:
@@ -732,9 +690,10 @@ def granger_test(
 
     try:
         from scipy.stats import f as f_dist
-        p_value = 1.0 - f_dist.cdf(f_stat, df1, df2)
-    except Exception:
+    except ImportError:
         p_value = np.nan
+    else:
+        p_value = 1.0 - f_dist.cdf(f_stat, df1, df2)
 
     return {
         "f_statistic": float(f_stat),
@@ -745,24 +704,21 @@ def granger_test(
     }
 
 
-# ---------------------------------------------------------------------------
-# Convenience: full neural-behavior alignment report
-# ---------------------------------------------------------------------------
 
 def compute_alignment_by_area(
-    spike_times_dict: Dict[str, np.ndarray],
+    spike_times_dict: SpikeTimesDict,
     units_df: "pd.DataFrame",
     behavior_df: "pd.DataFrame",
     trials: "pd.DataFrame | None" = None,
     bin_size: float = 0.025,
-    behavior_cols: Optional[List[str]] = None,
+    behavior_cols: list[str] | None = None,
     behavior_col: str = "running",
     max_lag_bins: int = 40,
     gap_bins: int = 20,
     n_permutations: int = 200,
     area_col: str = "ecephys_structure_acronym",
     min_units: int = 5,
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """Run compute_neural_behavior_alignment separately for each brain area.
 
     Parameters
@@ -786,11 +742,10 @@ def compute_alignment_by_area(
         )}
 
     areas = units_df[area_col].dropna().unique()
-    results: Dict[str, Dict[str, Any]] = {}
+    results: dict[str, dict[str, Any]] = {}
 
     for area in sorted(areas):
         area_units = units_df[units_df[area_col] == area]
-        # unit_id may be stored as int or string index
         uid_col = "unit_id" if "unit_id" in area_units.columns else area_units.index.name or "index"
         if uid_col == "index":
             unit_ids = {str(i) for i in area_units.index}
@@ -816,17 +771,17 @@ def compute_alignment_by_area(
 
 
 def compute_neural_behavior_alignment(
-    spike_times_dict: Dict[str, np.ndarray],
+    spike_times_dict: SpikeTimesDict,
     behavior_df: pd.DataFrame,
     trials: pd.DataFrame | None = None,
     bin_size: float = 0.025,
     behavior_col: str = "pose_speed",
-    behavior_cols: List[str] | None = None,
+    behavior_cols: list[str] | None = None,
     max_lag_bins: int = 40,
     gap_bins: int = 20,
     n_permutations: int = 200,
     run_variance_partitioning: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the full neural-behavior alignment pipeline.
 
     Implements Pillow et al.-style multi-covariate encoding with:
@@ -858,12 +813,10 @@ def compute_neural_behavior_alignment(
     from neural_events import build_population_vectors
     from timebase import build_time_grid, bin_continuous_features
 
-    results: Dict[str, Any] = {"bin_size": bin_size}
+    results: dict[str, Any] = {"bin_size": bin_size}
 
-    # Resolve which columns to use
     cols_to_use = behavior_cols if behavior_cols is not None else [behavior_col]
 
-    # Determine time range
     all_spike_times = np.concatenate(list(spike_times_dict.values())) if spike_times_dict else np.array([])
     if all_spike_times.size > 0:
         t_start, t_end = float(all_spike_times.min()), float(all_spike_times.max())
@@ -877,14 +830,12 @@ def compute_neural_behavior_alignment(
         results["error"] = "Not enough time bins for analysis"
         return results
 
-    # Build population matrix (n_timebins, n_units)
     pop = build_population_vectors(spike_times_dict, time_grid, bin_size)
     pop_rate = pop.sum(axis=1)
     results["n_units"] = pop.shape[1]
     results["n_timebins"] = len(time_grid)
     results["time_range"] = (float(t_start), float(t_end))
 
-    # Bin behavioral signals
     avail_cols = [c for c in cols_to_use if c in behavior_df.columns]
     if not avail_cols:
         results["error"] = f"None of {cols_to_use} found in behavior_df"
@@ -897,32 +848,26 @@ def compute_neural_behavior_alignment(
 
     results["behavior_cols_used"] = avail_cols
 
-    # 1. Cross-correlation (primary column, wide lag window)
     xcorr = crosscorrelation(pop_rate, beh_signal, max_lag=max_lag_bins)
     results["crosscorrelation"] = xcorr
     results["peak_lag_s"] = xcorr["peak_lag"] * bin_size
     results["peak_corr"] = xcorr["peak_corr"]
 
-    # 2. Per-unit cross-correlation
     unit_xcorr = population_crosscorrelation(pop, beh_signal, max_lag_bins, bin_size)
     results["unit_crosscorrelation"] = unit_xcorr
 
-    # 3. Sliding-window correlation
     window_size = min(200, len(time_grid) // 5)
     if window_size >= 20:
         slide = sliding_correlation(pop_rate, beh_signal, window_size=window_size, step=window_size // 4)
         results["sliding_correlation"] = slide
 
-    # 4. Multi-covariate encoding model with variance partitioning
-    # Build covariate dict from binned behavior columns
-    covariate_dict: Dict[str, np.ndarray] = {
+    covariate_dict: dict[str, np.ndarray] = {
         col: beh_binned[col].to_numpy()
         for col in avail_cols
         if col in beh_binned.columns
     }
 
     if len(covariate_dict) >= 2 and run_variance_partitioning:
-        # Full multi-covariate model with variance partitioning
         multi_enc = fit_multi_covariate_encoding_model(
             covariate_dict,
             pop_rate,
@@ -941,7 +886,6 @@ def compute_neural_behavior_alignment(
             "covariate_names": multi_enc["covariate_names"],
         }
     else:
-        # Single-covariate encoding model (forward-chain CV, raised cosine lags)
         beh_features = beh_binned[avail_cols].copy()
         enc = fit_encoding_model(
             beh_features, pop_rate,
@@ -967,16 +911,13 @@ def compute_neural_behavior_alignment(
             results["encoding"]["perm_p_value"] = perm["p_value"]
             results["encoding"]["perm_z_score"] = perm["z_score"]
 
-    # 5. Decoding model (neural -> primary behavior, forward-chain CV)
     dec = fit_decoding_model(pop, beh_signal, n_folds=5, gap_bins=gap_bins)
     results["decoding"] = {"mean_r2": dec["mean_r2"], "cv_scores": dec["cv_scores"]}
 
-    # 6. Granger causality (both directions, using primary column)
     max_gc_lag = min(10, len(time_grid) // 10)
     results["granger_neural_to_behavior"] = granger_test(pop_rate, beh_signal, max_lag=max_gc_lag)
     results["granger_behavior_to_neural"] = granger_test(beh_signal, pop_rate, max_lag=max_gc_lag)
 
-    # 7. Trial-averaged PETHs (if trials available)
     if trials is not None and not trials.empty:
         from neural_events import trial_averaged_rates
         for group_col in ["trial_type", "rewarded", "hit", "miss"]:

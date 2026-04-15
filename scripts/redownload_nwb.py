@@ -51,7 +51,6 @@ def main() -> None:
     cache_dir = Path("data/allensdk_cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # Step 1 — remove any truncated files so AllenSDK re-fetches them
     for sid in SESSIONS:
         _delete_truncated(sid)
 
@@ -61,7 +60,6 @@ def main() -> None:
         cache_dir=str(cache_dir)
     )
 
-    # Step 3 — trigger download for each session
     for sid in SESSIONS:
         print(f"\n[{sid}] Requesting session data (this may take several minutes) …")
         try:

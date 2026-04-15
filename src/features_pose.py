@@ -298,10 +298,6 @@ def export_labeling_video(
     return output_dir
 
 
-# ---------------------------------------------------------------------------
-# Keypoint discovery
-# ---------------------------------------------------------------------------
-
 def _find_keypoints(df: pd.DataFrame) -> list[str]:
     """Find keypoint names from columns ending in _x / _y."""
     x_cols = [c for c in df.columns if c.endswith("_x")]
@@ -316,10 +312,6 @@ def _find_keypoints(df: pd.DataFrame) -> list[str]:
 def _get_keypoint_xy(df: pd.DataFrame, name: str) -> tuple[np.ndarray, np.ndarray]:
     return df[f"{name}_x"].to_numpy(dtype=float), df[f"{name}_y"].to_numpy(dtype=float)
 
-
-# ---------------------------------------------------------------------------
-# Confidence filtering
-# ---------------------------------------------------------------------------
 
 def filter_by_confidence(
     df: pd.DataFrame,
@@ -357,10 +349,6 @@ def filter_by_confidence(
     return df
 
 
-# ---------------------------------------------------------------------------
-# Rich feature extraction
-# ---------------------------------------------------------------------------
-
 def derive_pose_features(
     pose_df: pd.DataFrame | None,
     confidence_threshold: float = 0.0,
@@ -385,7 +373,6 @@ def derive_pose_features(
     dt = np.gradient(t)
     dt[dt == 0] = 1e-6  # avoid division by zero
 
-    # Filter by confidence if requested
     if confidence_threshold > 0:
         df = filter_by_confidence(df, confidence_threshold, method="nan")
 
@@ -393,7 +380,6 @@ def derive_pose_features(
     if not keypoints:
         return df[["t"]]
 
-    # Per-keypoint velocity and acceleration
     all_speeds = []
     for kp in keypoints:
         x, y = _get_keypoint_xy(df, kp)
@@ -406,56 +392,42 @@ def derive_pose_features(
         df[f"{kp}_accel"] = accel
         all_speeds.append(speed)
 
-    # Overall pose speed (mean across keypoints, ignoring NaN)
     speed_matrix = np.column_stack(all_speeds)
     with np.errstate(all="ignore"):
         df["pose_speed"] = np.nanmean(speed_matrix, axis=1)
         df["pose_speed_std"] = np.nanstd(speed_matrix, axis=1)
 
-    # Body length (distance between first and last keypoint)
     if len(keypoints) >= 2:
         x0, y0 = _get_keypoint_xy(df, keypoints[0])
         x1, y1 = _get_keypoint_xy(df, keypoints[-1])
         df["body_length"] = np.sqrt((x1 - x0)**2 + (y1 - y0)**2)
 
-    # Head angle (angle of vector from second to first keypoint)
     if len(keypoints) >= 2:
         x0, y0 = _get_keypoint_xy(df, keypoints[0])
         x1, y1 = _get_keypoint_xy(df, keypoints[1])
         df["head_angle"] = np.arctan2(y0 - y1, x0 - x1)
         df["head_angular_vel"] = np.gradient(np.unwrap(df["head_angle"].to_numpy()), t)
 
-    # Inter-keypoint distances (all pairs, but limit to adjacent pairs to avoid explosion)
     for i in range(len(keypoints) - 1):
         xi, yi = _get_keypoint_xy(df, keypoints[i])
         xj, yj = _get_keypoint_xy(df, keypoints[i + 1])
         df[f"dist_{keypoints[i]}_{keypoints[i+1]}"] = np.sqrt((xj - xi)**2 + (yj - yi)**2)
 
-    # Stillness detection
     speed_threshold = np.nanpercentile(df["pose_speed"].to_numpy(), 10)
     df["is_still"] = (df["pose_speed"] < max(speed_threshold, 1.0)).astype(int)
 
-    # Collect output columns
     output_cols = ["t", "pose_speed", "pose_speed_std"]
     for kp in keypoints:
         output_cols.extend([f"{kp}_vel", f"{kp}_accel"])
     optional = ["body_length", "head_angle", "head_angular_vel", "is_still"]
     output_cols.extend([c for c in optional if c in df.columns])
-    # Distance columns
     output_cols.extend([c for c in df.columns if c.startswith("dist_")])
 
     return df[[c for c in output_cols if c in df.columns]]
 
 
-# ---------------------------------------------------------------------------
-# Timestamp attachment (unchanged from original)
-# ---------------------------------------------------------------------------
-
 def _load_camera_timestamps(session_id: int, camera: str) -> np.ndarray | None:
-    try:
-        from config import get_config
-    except Exception:
-        return None
+    from config import get_config
     cfg = get_config()
     base = cfg.video_cache_dir / str(session_id) / "behavior_videos"
     candidates = [
