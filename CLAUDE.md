@@ -62,7 +62,7 @@ MkDocs Material site. GitHub Actions deploys on push to `main` when `docs/` or `
 
 ## Known Issues / Workarounds
 
-- **`io_nwb.py:62` broken in SDK mode**: `BehaviorEcephysSession` has no `.nwb_path` attribute — the `hasattr` guard silently returns `None`. Workaround: use `ACCESS_MODE=manual` and populate `sessions.csv`.
+- **`io_nwb.py:62` FIXED (2026-04-14)**: `resolve_nwb_path` now returns `nwb_path or nwb_path_override` so the sessions.csv path is used when the SDK attribute is missing. NB00 also sets `os.environ.setdefault("ACCESS_MODE", "manual")` so notebooks default to manual mode.
 - **Notebook ROOT setup**: Fixed 2026-04-13 — notebooks 00–04, 07–09 now use conditional `if not (ROOT / "src").exists(): ROOT = ROOT.parent`. Works from repo root or inside `notebooks/`.
 
 ## Local Data (as of 2026-04-14)
@@ -182,6 +182,7 @@ Note: `session.nwb_path` does NOT exist — this is the bug in `io_nwb.py:62`.
 | 2026-04-14 | Added NWB + video download cells to NB01 (cells 10-11): AllenSDK NWB download with truncation detection; boto3 unsigned S3 video download for eye+side cameras. No credentials needed. |
 | 2026-04-14 | Literature review complete. Key gaps identified: active vs. passive epoch split (highest priority), area stratification, pre-stimulus behavioral state as trial covariate, banded ridge regression (himalaya), face SVD via Facemap, session d-prime filter. See Literature section below. |
 | 2026-04-14 | Session 1055240613 NWB re-downloaded successfully: 2.78 GB. Session 1043752325 timed out — use aws s3 cp fallback. |
+| 2026-04-14 | Fixed resolve_nwb_path: `return nwb_path or nwb_path_override` — falls back to sessions.csv path when SDK attribute is None (root cause of NB04 "No eye data" bug). NB00 now sets ACCESS_MODE=manual via os.environ.setdefault. |
 | 2026-04-14 | Area stratification implemented: extract_units_and_spikes() now preserves ecephys_structure_acronym; compute_alignment_by_area() in cross_correlation.py runs encoding model per area. |
 | 2026-04-14 | extract_stimulus_presentations() added to io_nwb.py — per-flash table with image_name, is_change, is_omission, active (epoch flag). SessionBundle.load_stimulus_presentations() added. |
 | 2026-04-14 | NB08 new cell 10: per-area encoding R2 + active/passive epoch split. Prints Delta R2 (active - passive) — the key VBN comparison. NB03 updated to extract + cache stimulus presentations. |

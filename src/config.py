@@ -32,7 +32,7 @@ def _parse_csv(value: str | None, default: list[str]) -> list[str]:
 
 @dataclass
 class Config:
-    access_mode: str = "sdk"
+    access_mode: str = "manual"
     pose_tool: str = "sleap"
     model_name: str = "xgboost"
     bin_size_s: float = 0.025
@@ -92,7 +92,7 @@ def get_config() -> Config:
     global _CONFIG
     if _CONFIG is None:
         _CONFIG = Config(
-            access_mode=_get_env("ACCESS_MODE", "sdk"),
+            access_mode=_get_env("ACCESS_MODE", "manual"),
             pose_tool=_get_env("POSE_TOOL", "sleap"),
             model_name=_get_env("MODEL_NAME", "xgboost"),
             bin_size_s=float(_get_env("BIN_SIZE_S", "0.025")),

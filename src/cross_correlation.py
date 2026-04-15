@@ -265,15 +265,45 @@ def _add_raised_cosine_lags(
     if n_out <= 0:
         return np.empty((0, n_feat * n_basis))
 
-    X_lag = np.zeros((n_out, n_feat * n_basis))
-    for f in range(n_feat):
-        for b in range(n_basis):
-            # Convolve feature f with basis b weights
-            col = np.zeros(n_out)
-            for l in range(n_lag_bins):
-                col += B[l, b] * X[n_lag_bins - l - 1: n_times - l - 1, f]
-            X_lag[:, f * n_basis + b] = col
+    # Vectorized: build lagged view (n_out, n_lag_bins, n_feat), then contract with B
+    # Shape: (n_out, n_lag_bins, n_feat)
+    idx = np.arange(n_lag_bins - 1, n_lag_bins - 1 + n_out)[:, None] - np.arange(n_lag_bins)[None, :]
+    X_lagged = X[idx]  # (n_out, n_lag_bins, n_feat)
+    # Contract lag axis with basis: (n_out, n_feat, n_basis)
+    X_lag = np.einsum("tlf,lb->fbt", X_lagged, B).reshape(n_out, n_feat * n_basis, order="F")
     return X_lag
+
+
+def _forward_chain_r2(
+    X: np.ndarray,
+    y: np.ndarray,
+    n_folds: int,
+    gap_bins: int,
+    alphas: List[float] | None = None,
+    model_type: str = "ridge",
+) -> List[float]:
+    """Forward-chain CV returning a list of per-fold R² scores.
+
+    Test folds are always in the future relative to training, with a
+    `gap_bins` buffer to prevent autocorrelation leakage.
+    """
+    alphas = alphas or [0.01, 0.1, 1.0, 10.0, 100.0]
+    n = len(y)
+    block = n // (n_folds + 1)
+    scores: List[float] = []
+    for i in range(1, n_folds + 1):
+        test_start = i * block
+        train_end = test_start - gap_bins
+        test_end = min((i + 1) * block, n)
+        if train_end < 10 or test_end <= test_start:
+            continue
+        m = _make_encoding_model(model_type) if model_type != "ridge" else RidgeCV(alphas=alphas)
+        try:
+            m.fit(X[:train_end], y[:train_end])
+            scores.append(r2_score(y[test_start:test_end], m.predict(X[test_start:test_end])))
+        except Exception as e:
+            print(f"[forward_chain_r2] fold {i} failed: {e}")
+    return scores
 
 
 def fit_encoding_model(
@@ -340,32 +370,13 @@ def fit_encoding_model(
     if n < 40:
         return {"model": None, "cv_scores": [], "feature_importance": None, "mean_r2": np.nan}
 
-    # True forward-chaining CV with temporal gap
-    # Divide into (n_folds + 1) equal blocks; skip first block as it has no history
-    block = n // (n_folds + 1)
-    scores = []
-    for i in range(1, n_folds + 1):
-        test_start = i * block
-        test_end = min((i + 1) * block, n)
-        train_end = test_start - gap_bins  # gap prevents autocorrelation leakage
-        if train_end < 10 or test_end <= test_start:
-            continue
-        train_idx = np.arange(0, train_end)
-        test_idx = np.arange(test_start, test_end)
+    scores = _forward_chain_r2(X_arr, y, n_folds=n_folds, gap_bins=gap_bins, model_type=model_type)
 
-        model = _make_encoding_model(model_type)
-        try:
-            model.fit(X_arr[train_idx], y[train_idx])
-            pred = model.predict(X_arr[test_idx])
-            scores.append(r2_score(y[test_idx], pred))
-        except Exception:
-            continue
-
-    # Final model on all data
     final_model = _make_encoding_model(model_type)
     try:
         final_model.fit(X_arr, y)
-    except Exception:
+    except Exception as e:
+        print(f"[fit_encoding_model] final fit failed: {e}")
         final_model = None
 
     importance = None
@@ -497,33 +508,17 @@ def fit_multi_covariate_encoding_model(
     y = np.asarray(neural_target, dtype=float)[n_lag_bins:n_lag_bins + len(X_full)]
 
     n_trimmed = len(y)
-    block = n_trimmed // 6
-    scores_full: List[float] = []
     coef_full = None
 
-    # Forward-chain CV for full model
-    for i in range(1, 6):
-        test_start = i * block
-        train_end = test_start - gap_bins
-        test_end = min((i + 1) * block, n_trimmed)
-        if train_end < 10 or test_end <= test_start:
-            continue
-        m = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0])
-        try:
-            m.fit(X_full[:train_end], y[:train_end])
-            scores_full.append(r2_score(y[test_start:test_end], m.predict(X_full[test_start:test_end])))
-        except Exception:
-            continue
-
+    scores_full = _forward_chain_r2(X_full, y, n_folds=5, gap_bins=gap_bins)
     full_r2 = float(np.mean(scores_full)) if scores_full else np.nan
 
-    # Final full model coefficients
     m_final = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0])
     try:
         m_final.fit(X_full, y)
         coef_full = m_final.coef_
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[fit_multi_covariate] full model final fit failed: {e}")
 
     # Variance partitioning: drop one covariate at a time
     unique_r2: Dict[str, float] = {}
@@ -541,19 +536,7 @@ def fit_multi_covariate_encoding_model(
         X_reduced = _add_raised_cosine_lags(X_reduced_raw, n_lag_bins=n_lag_bins, n_basis=n_basis)
         y_r = y  # same trimmed target
 
-        scores_red: List[float] = []
-        for i in range(1, 6):
-            test_start = i * block
-            train_end = test_start - gap_bins
-            test_end = min((i + 1) * block, len(y_r))
-            if train_end < 10 or test_end <= test_start:
-                continue
-            m = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0])
-            try:
-                m.fit(X_reduced[:train_end], y_r[:train_end])
-                scores_red.append(r2_score(y_r[test_start:test_end], m.predict(X_reduced[test_start:test_end])))
-            except Exception:
-                continue
+        scores_red = _forward_chain_r2(X_reduced, y_r, n_folds=5, gap_bins=gap_bins)
         reduced_r2 = float(np.mean(scores_red)) if scores_red else np.nan
         unique_r2[drop_k] = float(full_r2 - reduced_r2) if not np.isnan(reduced_r2) else np.nan
 
@@ -572,19 +555,8 @@ def fit_multi_covariate_encoding_model(
         null_r2 = np.zeros(n_permutations)
         for pi, sh in enumerate(shifts):
             y_sh = circular_shift(y, int(sh))
-            s: List[float] = []
-            for i in range(1, 6):
-                test_start = i * block
-                train_end = test_start - gap_bins
-                test_end = min((i + 1) * block, len(y_sh))
-                if train_end < 10 or test_end <= test_start:
-                    continue
-                m = RidgeCV(alphas=[0.1, 1.0, 10.0])
-                try:
-                    m.fit(X_full[:train_end], y_sh[:train_end])
-                    s.append(r2_score(y_sh[test_start:test_end], m.predict(X_full[test_start:test_end])))
-                except Exception:
-                    continue
+            s = _forward_chain_r2(X_full, y_sh, n_folds=5, gap_bins=gap_bins,
+                                  alphas=[0.1, 1.0, 10.0])
             null_r2[pi] = float(np.mean(s)) if s else 0.0
 
         null_mean = float(np.nanmean(null_r2))
@@ -679,29 +651,13 @@ def fit_decoding_model(
     if len(y) < 20:
         return {"model": None, "cv_scores": [], "mean_r2": np.nan, "feature_importance": None}
 
-    # True forward-chaining CV with temporal gap
-    block = len(y) // (n_folds + 1)
-    scores = []
-
-    for i in range(1, n_folds + 1):
-        test_start = i * block
-        train_end = test_start - gap_bins
-        test_end = min((i + 1) * block, len(y))
-        if train_end < 10 or test_end <= test_start:
-            continue
-
-        model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0])
-        try:
-            model.fit(X_arr[:train_end], y[:train_end])
-            pred = model.predict(X_arr[test_start:test_end])
-            scores.append(r2_score(y[test_start:test_end], pred))
-        except Exception:
-            continue
+    scores = _forward_chain_r2(X_arr, y, n_folds=n_folds, gap_bins=gap_bins)
 
     final_model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0])
     try:
         final_model.fit(X_arr, y)
-    except Exception:
+    except Exception as e:
+        print(f"[fit_decoding_model] final fit failed: {e}")
         final_model = None
 
     importance = np.abs(final_model.coef_) if final_model is not None else None

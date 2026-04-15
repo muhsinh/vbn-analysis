@@ -60,7 +60,9 @@ def resolve_nwb_path(
         cache = VisualBehaviorNeuropixelsProjectCache.from_s3_cache(cache_dir=str(cache_dir))
         session = cache.get_ecephys_session(session_id)
         nwb_path = Path(session.nwb_path) if hasattr(session, "nwb_path") else None
-        return nwb_path
+        # session.nwb_path does not exist on BehaviorEcephysSession — fall back
+        # to the override path (populated from sessions.csv) when SDK returns None.
+        return nwb_path or nwb_path_override
     except Exception:
         return nwb_path_override
 
@@ -222,47 +224,86 @@ def extract_stimulus_presentations(nwb: Any) -> pd.DataFrame | None:
     if nwb is None:
         return None
 
-    # Primary location: nwb.intervals["stimulus_presentations"]
-    intervals = getattr(nwb, "intervals", None) or {}
-    for key in ("stimulus_presentations", "stimuli"):
-        if key not in intervals:
-            continue
+    # VBN NWB stores one table per stimulus set (e.g.
+    # "Natural_Images_Lum_Matched_set_ophys_G_2019_presentations",
+    # "flash_250ms_presentations", "gabor_20_deg_250ms_presentations").
+    # There is no single "stimulus_presentations" key.
+    intervals = getattr(nwb, "intervals", None)
+    if intervals is None:
+        return None
+
+    try:
+        available_keys = list(intervals.keys())
+    except Exception:
         try:
-            df = intervals[key].to_dataframe() if hasattr(intervals[key], "to_dataframe") else pd.DataFrame(intervals[key])
+            available_keys = [k for k in intervals]
+        except Exception:
+            available_keys = []
+
+    # Collect all *_presentations tables (including spontaneous — useful for
+    # baseline firing rates, noise correlations, and state modulation baselines).
+    # Skip only the "trials" table which is extracted separately via extract_trials().
+    candidate_keys = [
+        k for k in available_keys
+        if k.endswith("_presentations") and k != "trials"
+    ]
+    if not candidate_keys:
+        return None
+
+    pieces = []
+    for key in candidate_keys:
+        try:
+            tbl = intervals[key]
+            df = tbl.to_dataframe() if hasattr(tbl, "to_dataframe") else pd.DataFrame(tbl)
             df = df.reset_index(drop=False)
-
-            # Standardise timing columns
-            if "start_time" in df.columns:
-                df = df.rename(columns={"start_time": "t_start", "stop_time": "t_end"})
-            # Use stimulus_time_offset-corrected onset where available
-            if "stimulus_time_offset" in df.columns:
-                df["t"] = df["t_start"] + df["stimulus_time_offset"]
-            else:
-                df["t"] = df.get("t_start", df.get("t", np.zeros(len(df))))
-
-            # Normalise column names used by downstream code
-            renames = {
-                "image_name": "image_name",
-                "stimulus_name": "stimulus_name",
-                "change_frame": "is_change",
-                "omitted": "is_omission",
-                "active": "active",
-                "stimulus_block": "stimulus_block",
-            }
-            for src, dst in renames.items():
-                if src in df.columns and dst not in df.columns:
-                    df = df.rename(columns={src: dst})
-
-            # Derive active epoch flag if not present
-            if "active" not in df.columns and "stimulus_block" in df.columns:
-                # Convention: odd-numbered blocks are active in VBN
-                df["active"] = df["stimulus_block"] % 2 == 1
-
-            return df
+            df["_source_table"] = key
+            pieces.append(df)
         except Exception:
             continue
 
-    return None
+    if not pieces:
+        return None
+
+    stim = pd.concat(pieces, ignore_index=True)
+
+    # pynwb always adds a "timeseries" column containing live NWB objects —
+    # drop it and any other object-dtype column that isn't str/bool/numeric.
+    PYNWB_OBJECT_COLS = {"timeseries", "tags"}
+    drop_cols = [c for c in stim.columns if c in PYNWB_OBJECT_COLS]
+    if drop_cols:
+        stim = stim.drop(columns=drop_cols)
+
+    # Standardise timing columns
+    if "start_time" in stim.columns:
+        stim = stim.rename(columns={"start_time": "t_start", "stop_time": "t_end"})
+    if "stimulus_time_offset" in stim.columns:
+        stim["t"] = stim["t_start"] + stim["stimulus_time_offset"]
+    elif "t_start" in stim.columns:
+        stim["t"] = stim["t_start"]
+
+    stim = stim.sort_values("t").reset_index(drop=True)
+
+    # Normalise column names
+    renames = {"change_frame": "is_change", "omitted": "is_omission"}
+    for src, dst in renames.items():
+        if src in stim.columns and dst not in stim.columns:
+            stim = stim.rename(columns={src: dst})
+
+    # Derive active epoch flag: in VBN the active task epoch comes first,
+    # passive replay second. Spontaneous periods are always passive (active=False).
+    if "active" not in stim.columns:
+        if "stimulus_block" in stim.columns:
+            first_block = stim["stimulus_block"].min()
+            stim["active"] = stim["stimulus_block"] == first_block
+        else:
+            mid = stim["t"].median()
+            stim["active"] = stim["t"] < mid
+    # Spontaneous presentations are never part of the active task epoch
+    if "_source_table" in stim.columns:
+        is_spontaneous = stim["_source_table"].str.contains("spontaneous", case=False)
+        stim.loc[is_spontaneous, "active"] = False
+
+    return stim
 
 
 def extract_running_speed(nwb: Any) -> pd.DataFrame | None:

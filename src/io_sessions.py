@@ -1,13 +1,10 @@
 """Session discovery and bundle orchestration."""
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
-import joblib
 import pandas as pd
 
 import io_nwb
@@ -17,18 +14,6 @@ from reports import setup_session_logger
 
 REQUIRED_SESSIONS_COLUMNS = ["session_id", "nwb_path", "video_dir", "notes"]
 
-
-def _hash_params(params: dict[str, Any]) -> str:
-    payload = json.dumps(params, sort_keys=True, default=str).encode("utf-8")
-    return hashlib.md5(payload).hexdigest()
-
-
-def _cache_path(session_id: int, step: str, params: dict[str, Any], ext: str = "joblib") -> Path:
-    cfg = get_config()
-    cache_dir = cfg.cache_dir / f"session_{session_id}"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    key = _hash_params(params)
-    return cache_dir / f"{step}_{key}.{ext}"
 
 
 def load_sessions_csv(path: Path | None = None, create_if_missing: bool = True) -> pd.DataFrame:
@@ -295,8 +280,18 @@ def get_session_bundle(
     else:
         nwb_path_str = str(row.iloc[0]["nwb_path"]).strip()
         video_dir_str = str(row.iloc[0]["video_dir"]).strip()
-        nwb_path = Path(nwb_path_str) if nwb_path_str else None
-        video_dir = Path(video_dir_str) if video_dir_str else None
+
+        def _resolve(p_str: str) -> Path | None:
+            if not p_str:
+                return None
+            p = Path(p_str)
+            if not p.is_absolute():
+                from config import ROOT_DIR
+                p = ROOT_DIR / p
+            return p
+
+        nwb_path = _resolve(nwb_path_str)
+        video_dir = _resolve(video_dir_str)
 
     resolved_nwb_path = None
     if resolve_nwb:
@@ -322,17 +317,3 @@ def get_session_bundle(
         modalities_present=modalities,
     )
     return bundle
-
-
-def cache_step(
-    session_id: int,
-    step: str,
-    params: dict[str, Any],
-    compute_fn: Callable[[], Any],
-) -> Any:
-    cache_path = _cache_path(session_id, step, params)
-    if cache_path.exists():
-        return joblib.load(cache_path)
-    result = compute_fn()
-    joblib.dump(result, cache_path)
-    return result
