@@ -166,7 +166,7 @@ if torch.cuda.is_available():
         print(f"  cuda:{i}  {torch.cuda.get_device_name(i)}"
               f"  free={free_b / 1024**3:.1f} / {total_b / 1024**3:.1f} GB")
     free_gb = torch.cuda.mem_get_info(0)[0] / 1024**3
-    det_b   = min(112, max(4, int((free_gb - 2.0) / 0.4)))  # cap at 112 — MMU fault at 195
+    det_b   = min(112, max(4, int((free_gb - 8.0) / 0.7)))  # conservative — OOM at det_b=50 on L4 22GB
     device  = "cuda"
     print(f"Detector batch size: {det_b}  (from {free_gb:.1f} GB free VRAM on cuda:0)")
 else:
