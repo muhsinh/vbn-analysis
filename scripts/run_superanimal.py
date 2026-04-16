@@ -166,7 +166,7 @@ if torch.cuda.is_available():
         print(f"  cuda:{i}  {torch.cuda.get_device_name(i)}"
               f"  free={free_b / 1024**3:.1f} / {total_b / 1024**3:.1f} GB")
     free_gb = torch.cuda.mem_get_info(0)[0] / 1024**3
-    det_b   = max(4, int((free_gb - 2.0) / 0.4))  # no upper cap — scales to A100/H100
+    det_b   = min(112, max(4, int((free_gb - 2.0) / 0.4)))  # cap at 112 — MMU fault at 195
     device  = "cuda"
     print(f"Detector batch size: {det_b}  (from {free_gb:.1f} GB free VRAM on cuda:0)")
 else:
@@ -184,7 +184,7 @@ pose_b = 16
 # Inference runs in a subprocess so the patch is picked up on fresh import.
 
 def patch_dlc(dlc_base: str, batch_size: int) -> int:
-    pattern     = re.compile(r'get\("detector_batch_size",\s*\d+\)')
+    pattern     = re.compile(r'get\("detector_batch_size",[ \t]*\d+\)')
     replacement = f'get("detector_batch_size", {batch_size})'
     targets = [
         os.path.join(dlc_base, "pose_estimation_pytorch", "apis", "videos.py"),
