@@ -257,7 +257,10 @@ def _add_raised_cosine_lags(
     idx = np.arange(n_lag_bins - 1, n_lag_bins - 1 + n_out)[:, None] - np.arange(n_lag_bins)[None, :]
     X_lagged = X[idx]  # (n_out, n_lag_bins, n_feat)
     # Contract lag axis with basis: (n_out, n_feat, n_basis)
-    X_lag = np.einsum("tlf,lb->fbt", X_lagged, B).reshape(n_out, n_feat * n_basis, order="F")
+    # Contract lag axis with basis, keep feature-major block ordering:
+    # Output column order = [f0_b0, f0_b1, ..., f0_b{K-1}, f1_b0, ..., f{F-1}_b{K-1}]
+    # which matches the coefficient-block extraction in fit_multi_covariate_encoding_model.
+    X_lag = np.einsum("tlf,lb->tfb", X_lagged, B).reshape(n_out, n_feat * n_basis)
     return X_lag
 
 
@@ -274,7 +277,9 @@ def _forward_chain_r2(
     Test folds are always in the future relative to training, with a
     `gap_bins` buffer to prevent autocorrelation leakage.
     """
-    alphas = alphas or [0.01, 0.1, 1.0, 10.0, 100.0]
+    # Expanded alpha grid for design matrices with ~10^5 rows and ~10^2 cols.
+    # The previous grid [0.01 ... 100] saturated on large problems.
+    alphas = alphas or [1.0, 10.0, 100.0, 1000.0, 10000.0]
     n = len(y)
     block = n // (n_folds + 1)
     scores: list[float] = []
@@ -296,7 +301,7 @@ def fit_encoding_model(
     model_type: str = "ridge",
     n_folds: int = 5,
     lags: list[int] | None = None,
-    gap_bins: int = 20,
+    gap_bins: int = 40,
     use_raised_cosine: bool = False,
     n_lag_bins: int = 40,
     n_basis: int = 10,
@@ -344,12 +349,24 @@ def fit_encoding_model(
     X_arr = X.fillna(0).to_numpy() if isinstance(X, pd.DataFrame) else np.nan_to_num(X)
     y = np.asarray(neural_target, dtype=float)
 
+    # Z-score features: ridge needs commensurate scales across columns.
+    x_mu = X_arr.mean(axis=0)
+    x_sd = X_arr.std(axis=0)
+    x_sd[x_sd == 0] = 1.0
+    X_arr = (X_arr - x_mu) / x_sd
+
     if use_raised_cosine:
         X_arr = _add_raised_cosine_lags(X_arr, n_lag_bins=n_lag_bins, n_basis=n_basis)
         y = y[n_lag_bins:]  # align targets to trimmed X
 
     n = min(len(X_arr), len(y))
     X_arr, y = X_arr[:n], y[:n]
+
+    # Z-score target so R² reflects explained normalized variance.
+    y_mu, y_sd = float(np.nanmean(y)), float(np.nanstd(y))
+    if y_sd == 0:
+        y_sd = 1.0
+    y = (y - y_mu) / y_sd
 
     if n < 40:
         return {"model": None, "cv_scores": [], "feature_importance": None, "mean_r2": np.nan}
@@ -433,7 +450,7 @@ def fit_multi_covariate_encoding_model(
     covariate_dict: dict[str, np.ndarray],
     neural_target: np.ndarray,
     bin_size: float = 0.025,
-    gap_bins: int = 20,
+    gap_bins: int = 40,
     n_lag_bins: int = 40,
     n_basis: int = 8,
     n_permutations: int = 200,
@@ -482,8 +499,19 @@ def fit_multi_covariate_encoding_model(
     ])
     X_raw = np.nan_to_num(X_raw)
 
+    # Z-score each behavioral covariate so isotropic L2 penalty applies uniformly.
+    x_mu = X_raw.mean(axis=0)
+    x_sd = X_raw.std(axis=0)
+    x_sd[x_sd == 0] = 1.0
+    X_raw = (X_raw - x_mu) / x_sd
+
     X_full = _add_raised_cosine_lags(X_raw, n_lag_bins=n_lag_bins, n_basis=n_basis)
     y = np.asarray(neural_target, dtype=float)[n_lag_bins:n_lag_bins + len(X_full)]
+    # Z-score target; raw spike counts are on a scale incommensurate with behavior.
+    y_mu, y_sd = float(np.nanmean(y)), float(np.nanstd(y))
+    if y_sd == 0:
+        y_sd = 1.0
+    y = (y - y_mu) / y_sd
 
     n_trimmed = len(y)
     coef_full = None
@@ -491,7 +519,7 @@ def fit_multi_covariate_encoding_model(
     scores_full = _forward_chain_r2(X_full, y, n_folds=5, gap_bins=gap_bins)
     full_r2 = float(np.mean(scores_full)) if scores_full else np.nan
 
-    m_final = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0])
+    m_final = RidgeCV(alphas=[1.0, 10.0, 100.0, 1000.0, 10000.0])
     m_final.fit(X_full, y)
     coef_full = m_final.coef_
 
@@ -583,7 +611,7 @@ def fit_decoding_model(
     behavior_target: np.ndarray,
     n_folds: int = 5,
     lags: list[int] | None = None,
-    gap_bins: int = 20,
+    gap_bins: int = 40,
 ) -> dict[str, Any]:
     """Fit a decoding model: neural -> behavior.
 
@@ -666,6 +694,12 @@ def granger_test(
 
     y = y[:len(X_restricted)]
 
+    # Drop rows with NaN (from blink interpolation, missing data, etc.)
+    valid = np.isfinite(y) & np.all(np.isfinite(X_full), axis=1)
+    if valid.sum() < max_lag + 20:
+        return {"f_statistic": 0.0, "p_value": 1.0, "r2_restricted": 0.0, "r2_full": 0.0, "improvement": 0.0}
+    y, X_restricted, X_full = y[valid], X_restricted[valid], X_full[valid]
+
     model_r = Ridge(alpha=0.1)
     model_f = Ridge(alpha=0.1)
 
@@ -714,7 +748,7 @@ def compute_alignment_by_area(
     behavior_cols: list[str] | None = None,
     behavior_col: str = "running",
     max_lag_bins: int = 40,
-    gap_bins: int = 20,
+    gap_bins: int = 40,
     n_permutations: int = 200,
     area_col: str = "ecephys_structure_acronym",
     min_units: int = 5,
@@ -778,7 +812,7 @@ def compute_neural_behavior_alignment(
     behavior_col: str = "pose_speed",
     behavior_cols: list[str] | None = None,
     max_lag_bins: int = 40,
-    gap_bins: int = 20,
+    gap_bins: int = 40,
     n_permutations: int = 200,
     run_variance_partitioning: bool = True,
 ) -> dict[str, Any]:

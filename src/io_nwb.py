@@ -138,12 +138,29 @@ def extract_units_and_spikes(
             spike_times[str(unit_id)] = np.asarray(times)
         units_df = units_df.drop(columns=["spike_times"])
 
-    # Ensure brain area column is present — critical for area-stratified analyses
+    # Ensure brain area column is present — critical for area-stratified analyses.
+    # VBN stores area in nwb.electrodes (not nwb.units), so join via peak_channel_id
+    # if the units table doesn't already carry it.
     for area_col in ("ecephys_structure_acronym", "structure_acronym", "location"):
         if area_col in units_df.columns:
             if area_col != "ecephys_structure_acronym":
                 units_df = units_df.rename(columns={area_col: "ecephys_structure_acronym"})
             break
+    else:
+        if (
+            "peak_channel_id" in units_df.columns
+            and hasattr(nwb, "electrodes")
+            and nwb.electrodes is not None
+        ):
+            elec = nwb.electrodes.to_dataframe().reset_index()
+            for elec_area_col in ("structure_acronym", "location", "ecephys_structure_acronym"):
+                if elec_area_col in elec.columns:
+                    elec_id_col = "id" if "id" in elec.columns else elec.columns[0]
+                    elec_map = elec.set_index(elec_id_col)[elec_area_col].astype(str).to_dict()
+                    units_df["ecephys_structure_acronym"] = (
+                        units_df["peak_channel_id"].map(elec_map).astype(str)
+                    )
+                    break
 
     return units_df.reset_index(drop=False), spike_times
 
