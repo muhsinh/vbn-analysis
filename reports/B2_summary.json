@@ -1,0 +1,79 @@
+{
+  "n_strict": 170,
+  "n_miss_only": 23,
+  "n_old": 170,
+  "variants": {
+    "LGd": {
+      "n_units": 42,
+      "ratio_old": 1.4312388374736147,
+      "ratio_strict": 1.9851368089179153,
+      "ratio_miss_only": 2.5090060040026674
+    },
+    "VISp": {
+      "n_units": 44,
+      "ratio_old": 1.650013027618551,
+      "ratio_strict": 2.665018411362441,
+      "ratio_miss_only": 2.3991769547325097
+    },
+    "VISl": {
+      "n_units": 40,
+      "ratio_old": 1.6170955515659284,
+      "ratio_strict": 2.6853830227743276,
+      "ratio_miss_only": 2.860438292964246
+    },
+    "VISal": {
+      "n_units": 42,
+      "ratio_old": 1.277240348254331,
+      "ratio_strict": 1.988975623116954,
+      "ratio_miss_only": 1.9251881363435146
+    },
+    "VISrl": {
+      "n_units": 18,
+      "ratio_old": 1.6328911815278802,
+      "ratio_strict": 2.669142742421201,
+      "ratio_miss_only": 2.615671641791046
+    },
+    "VISpm": {
+      "n_units": 39,
+      "ratio_old": 1.9882119205298026,
+      "ratio_strict": 4.805057618437899,
+      "ratio_miss_only": 4.489999999999999
+    },
+    "VISam": {
+      "n_units": 32,
+      "ratio_old": 3.0042149631190775,
+      "ratio_strict": 2.6300738007380096,
+      "ratio_miss_only": 2.163776493256262
+    },
+    "CA1": {
+      "n_units": 42,
+      "ratio_old": 1.3531777956556728,
+      "ratio_strict": 0.9396648044692746,
+      "ratio_miss_only": 0.636824324324324
+    },
+    "DG": {
+      "n_units": 37,
+      "ratio_old": 1.9597560975609774,
+      "ratio_strict": 1.0034342803621588,
+      "ratio_miss_only": 0.8053221288515404
+    },
+    "SCig": {
+      "n_units": 41,
+      "ratio_old": 4.083333333333342,
+      "ratio_strict": null,
+      "ratio_miss_only": 1.9827160493827145
+    },
+    "MRN": {
+      "n_units": 28,
+      "ratio_old": 2.665813424345847,
+      "ratio_strict": 4.396341463414635,
+      "ratio_miss_only": 4.073122529644267
+    },
+    "nan": {
+      "n_units": 24,
+      "ratio_old": 1.1193798449612373,
+      "ratio_strict": 0.7991145545102368,
+      "ratio_miss_only": 2.0547445255474415
+    }
+  }
+}

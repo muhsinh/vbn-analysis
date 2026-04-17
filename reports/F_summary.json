@@ -1,0 +1,26 @@
+{
+  "n_events": 2000,
+  "area_latencies_ms": {
+    "LGd": 47.000000000000206,
+    "VISp": 31.000000000000195,
+    "VISl": 41.000000000000206,
+    "VISal": 31.000000000000195,
+    "VISrl": 37.0000000000002,
+    "VISpm": 51.00000000000021,
+    "VISam": 49.00000000000021,
+    "MGd": null,
+    "CA1": null,
+    "DG": null,
+    "SCig": null,
+    "MRN": 51.00000000000021,
+    "nan": null
+  },
+  "piet_2025_reference_ms": {
+    "LGd": 38,
+    "VISp": 44,
+    "VISl": 45,
+    "VISal": 46,
+    "VISpm": 53,
+    "VISam": 53
+  }
+}

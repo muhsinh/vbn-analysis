@@ -1,0 +1,121 @@
+{
+  "feat_groups": {
+    "running": 1,
+    "pupil": 4,
+    "face_svd": 20,
+    "saccade": 1
+  },
+  "n_units_fit": 442,
+  "gap_bins": 40,
+  "session_mean_full_r2": -0.021353159099817276,
+  "areas": {
+    "LGd": {
+      "n_units": 42,
+      "full_r2_mean": -0.024175136139438974,
+      "frac_positive_r2": 0.14285714285714285,
+      "unique_running": 0.004755458295611399,
+      "unique_pupil": 0.0036690594251489357,
+      "unique_face_svd": 0.0005315774247892911,
+      "unique_saccade": 0.0008204877598299866
+    },
+    "VISp": {
+      "n_units": 44,
+      "full_r2_mean": -0.020422254022626228,
+      "frac_positive_r2": 0.38636363636363635,
+      "unique_running": 0.0057269284364090045,
+      "unique_pupil": 0.005557323292702098,
+      "unique_face_svd": -0.0018001987045863643,
+      "unique_saccade": 8.374781067356129e-05
+    },
+    "VISl": {
+      "n_units": 40,
+      "full_r2_mean": -0.011507158952008467,
+      "frac_positive_r2": 0.325,
+      "unique_running": 0.005536661484802608,
+      "unique_pupil": 0.005533779883990064,
+      "unique_face_svd": -0.0010119676910107956,
+      "unique_saccade": 0.0003411524950934108
+    },
+    "VISal": {
+      "n_units": 42,
+      "full_r2_mean": -0.005943962177428018,
+      "frac_positive_r2": 0.38095238095238093,
+      "unique_running": 0.007584898890594819,
+      "unique_pupil": 0.003189654390250022,
+      "unique_face_svd": -0.0030785702429490074,
+      "unique_saccade": 0.0006205184701164919
+    },
+    "VISrl": {
+      "n_units": 18,
+      "full_r2_mean": -0.02559514337271038,
+      "frac_positive_r2": 0.2777777777777778,
+      "unique_running": 0.004704927676357329,
+      "unique_pupil": -0.0006552389822900295,
+      "unique_face_svd": 0.002197240550433182,
+      "unique_saccade": 0.0012282922398298979
+    },
+    "VISpm": {
+      "n_units": 39,
+      "full_r2_mean": -0.024241680620877722,
+      "frac_positive_r2": 0.1794871794871795,
+      "unique_running": 0.004100849595255194,
+      "unique_pupil": 0.0021453127175426255,
+      "unique_face_svd": -0.002162506409849112,
+      "unique_saccade": 0.0007035166129823595
+    },
+    "VISam": {
+      "n_units": 32,
+      "full_r2_mean": -0.02015609031150234,
+      "frac_positive_r2": 0.125,
+      "unique_running": 0.0029454829927999526,
+      "unique_pupil": 0.00044399718899512663,
+      "unique_face_svd": -0.0016879711401998065,
+      "unique_saccade": 0.00047896629621391185
+    },
+    "CA1": {
+      "n_units": 42,
+      "full_r2_mean": -0.030396290836506523,
+      "frac_positive_r2": 0.07142857142857142,
+      "unique_running": 0.003179599309251422,
+      "unique_pupil": -0.000842198692095865,
+      "unique_face_svd": -0.0022108581061253234,
+      "unique_saccade": 0.00041628256717341996
+    },
+    "DG": {
+      "n_units": 37,
+      "full_r2_mean": -0.06498199935398392,
+      "frac_positive_r2": 0.08108108108108109,
+      "unique_running": 0.0008085309905377595,
+      "unique_pupil": -0.007693028772828748,
+      "unique_face_svd": 0.004928102150458742,
+      "unique_saccade": 0.0006100912641331151
+    },
+    "SCig": {
+      "n_units": 41,
+      "full_r2_mean": 0.029257608355603624,
+      "frac_positive_r2": 0.8048780487804879,
+      "unique_running": 0.021789206331027898,
+      "unique_pupil": 0.004074410698660536,
+      "unique_face_svd": -0.0025808153980661458,
+      "unique_saccade": 0.016569214410193992
+    },
+    "MRN": {
+      "n_units": 28,
+      "full_r2_mean": -0.02272946895599099,
+      "frac_positive_r2": 0.5,
+      "unique_running": 0.03525436425115913,
+      "unique_pupil": 0.007501375682685258,
+      "unique_face_svd": 0.0051166523647095475,
+      "unique_saccade": 0.009382321524234223
+    },
+    "nan": {
+      "n_units": 13,
+      "full_r2_mean": 0.039689392496186957,
+      "frac_positive_r2": 0.5384615384615384,
+      "unique_running": 0.018168618651823357,
+      "unique_pupil": 0.004348643553944735,
+      "unique_face_svd": -0.006530052319598885,
+      "unique_saccade": 0.028863628323261555
+    }
+  }
+}
