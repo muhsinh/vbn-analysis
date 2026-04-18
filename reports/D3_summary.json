@@ -1,0 +1,128 @@
+{
+  "method": "per-band RidgeCV \u03b1 + feature rescaling (equivalent to banded ridge)",
+  "band_sizes": {
+    "running": 8,
+    "pupil": 32,
+    "face_svd": 160,
+    "saccade": 8
+  },
+  "band_alphas": {
+    "running": 0.1,
+    "pupil": 100.0,
+    "face_svd": 316.22776601683796,
+    "saccade": 1000.0
+  },
+  "n_units_fit": 442,
+  "gap_bins": 40,
+  "mean_full_r2": -0.020795084536075592,
+  "areas": {
+    "LGd": {
+      "n_units": 42,
+      "full_r2_mean": -0.02377483115387371,
+      "frac_positive_r2": 0.14285714285714285,
+      "unique_running": 0.00495487556881493,
+      "unique_pupil": 0.003655178976866106,
+      "unique_face_svd": 0.0007126136472271312,
+      "unique_saccade": 0.0008182435468327077
+    },
+    "VISp": {
+      "n_units": 44,
+      "full_r2_mean": -0.020271238053365694,
+      "frac_positive_r2": 0.4090909090909091,
+      "unique_running": 0.005683081822512163,
+      "unique_pupil": 0.005538850919534029,
+      "unique_face_svd": -0.001592810146658766,
+      "unique_saccade": 0.00011724294877653433
+    },
+    "VISl": {
+      "n_units": 40,
+      "full_r2_mean": -0.010843367777852109,
+      "frac_positive_r2": 0.4,
+      "unique_running": 0.005946202838094905,
+      "unique_pupil": 0.005430747068021447,
+      "unique_face_svd": -0.0007105531985871494,
+      "unique_saccade": 0.00036217701199348085
+    },
+    "VISal": {
+      "n_units": 42,
+      "full_r2_mean": -0.005296884606997039,
+      "frac_positive_r2": 0.42857142857142855,
+      "unique_running": 0.007947756509695734,
+      "unique_pupil": 0.0031058202702773825,
+      "unique_face_svd": -0.002830148170081278,
+      "unique_saccade": 0.0006090021148944894
+    },
+    "VISrl": {
+      "n_units": 18,
+      "full_r2_mean": -0.024919843456397455,
+      "frac_positive_r2": 0.2777777777777778,
+      "unique_running": 0.005223735959993469,
+      "unique_pupil": -0.0006803333655827575,
+      "unique_face_svd": 0.0023036785747131538,
+      "unique_saccade": 0.001228639584345122
+    },
+    "VISpm": {
+      "n_units": 39,
+      "full_r2_mean": -0.02406051898474405,
+      "frac_positive_r2": 0.20512820512820512,
+      "unique_running": 0.004056132004524653,
+      "unique_pupil": 0.002133525105026097,
+      "unique_face_svd": -0.001929566419372956,
+      "unique_saccade": 0.0007033101180404162
+    },
+    "VISam": {
+      "n_units": 32,
+      "full_r2_mean": -0.01982211748327245,
+      "frac_positive_r2": 0.125,
+      "unique_running": 0.003038615162950009,
+      "unique_pupil": 0.0004276530507922871,
+      "unique_face_svd": -0.0014461601713264827,
+      "unique_saccade": 0.0004933816271659452
+    },
+    "CA1": {
+      "n_units": 42,
+      "full_r2_mean": -0.03016654231441862,
+      "frac_positive_r2": 0.07142857142857142,
+      "unique_running": 0.0031762670204486874,
+      "unique_pupil": -0.0008339014117761204,
+      "unique_face_svd": -0.0019954816283037267,
+      "unique_saccade": 0.00043188800918869674
+    },
+    "DG": {
+      "n_units": 37,
+      "full_r2_mean": -0.06464671903931712,
+      "frac_positive_r2": 0.08108108108108109,
+      "unique_running": 0.0007991311014504046,
+      "unique_pupil": -0.0076567406162015485,
+      "unique_face_svd": 0.005257498784418646,
+      "unique_saccade": 0.0006485559625198712
+    },
+    "SCig": {
+      "n_units": 41,
+      "full_r2_mean": 0.030083172216375426,
+      "frac_positive_r2": 0.8048780487804879,
+      "unique_running": 0.022426267739430798,
+      "unique_pupil": 0.004047023953029477,
+      "unique_face_svd": -0.0023710991982824918,
+      "unique_saccade": 0.016477279038531932
+    },
+    "MRN": {
+      "n_units": 28,
+      "full_r2_mean": -0.020117978538369892,
+      "frac_positive_r2": 0.5,
+      "unique_running": 0.03767558501151923,
+      "unique_pupil": 0.00786416529237093,
+      "unique_face_svd": 0.005132648865193394,
+      "unique_saccade": 0.009303270602166387
+    },
+    "nan": {
+      "n_units": 13,
+      "full_r2_mean": 0.03991926400564038,
+      "frac_positive_r2": 0.5384615384615384,
+      "unique_running": 0.018088849297223184,
+      "unique_pupil": 0.004469149871371114,
+      "unique_face_svd": -0.006338468985632062,
+      "unique_saccade": 0.02884304727642582
+    }
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "method": "pairwise Pearson on flash-residualized 25ms binned counts, per area, per block",
+  "active_block": [
+    27.6,
+    3630.0
+  ],
+  "passive_block": [
+    5184.1,
+    8786.5
+  ],
+  "areas": {
+    "LGd": {
+      "n_units": 42,
+      "n_pairs": 861,
+      "mean_nc_active": 0.03472739154328305,
+      "mean_nc_passive": 0.019077984722988994,
+      "delta_nc": 0.015649406820294053,
+      "wilcoxon_p": 3.2112418025727776e-75
+    },
+    "VISp": {
+      "n_units": 44,
+      "n_pairs": 946,
+      "mean_nc_active": 0.027741162962125396,
+      "mean_nc_passive": 0.01767774707650346,
+      "delta_nc": 0.010063415885621936,
+      "wilcoxon_p": 2.762357324194983e-36
+    },
+    "VISl": {
+      "n_units": 40,
+      "n_pairs": 780,
+      "mean_nc_active": 0.037630993086585615,
+      "mean_nc_passive": 0.024855368050690094,
+      "delta_nc": 0.012775625035895521,
+      "wilcoxon_p": 4.80525285613355e-41
+    },
+    "VISal": {
+      "n_units": 42,
+      "n_pairs": 861,
+      "mean_nc_active": 0.025990651694283325,
+      "mean_nc_passive": 0.021268945925384107,
+      "delta_nc": 0.004721705768899218,
+      "wilcoxon_p": 5.7924216387082065e-12
+    },
+    "VISrl": {
+      "n_units": 18,
+      "n_pairs": 153,
+      "mean_nc_active": 0.07203888731778708,
+      "mean_nc_passive": 0.06664113493986765,
+      "delta_nc": 0.0053977523779194375,
+      "wilcoxon_p": 0.002087920328635376
+    },
+    "VISpm": {
+      "n_units": 39,
+      "n_pairs": 741,
+      "mean_nc_active": 0.019603793571116038,
+      "mean_nc_passive": 0.010799934399699482,
+      "delta_nc": 0.008803859171416555,
+      "wilcoxon_p": 5.134105934793371e-35
+    },
+    "VISam": {
+      "n_units": 32,
+      "n_pairs": 496,
+      "mean_nc_active": 0.016627574989339235,
+      "mean_nc_passive": 0.009368167858965165,
+      "delta_nc": 0.00725940713037407,
+      "wilcoxon_p": 2.321789674972363e-19
+    },
+    "CA1": {
+      "n_units": 42,
+      "n_pairs": 861,
+      "mean_nc_active": 0.014743121743322828,
+      "mean_nc_passive": 0.017057715944857978,
+      "delta_nc": -0.0023145942015351494,
+      "wilcoxon_p": 0.045359472695953196
+    },
+    "DG": {
+      "n_units": 37,
+      "n_pairs": 666,
+      "mean_nc_active": 0.03730387899969194,
+      "mean_nc_passive": 0.03155878275295045,
+      "delta_nc": 0.0057450962467414865,
+      "wilcoxon_p": 0.0036894424080700858
+    },
+    "ProS": {
+      "n_units": 55,
+      "n_pairs": 1485,
+      "mean_nc_active": 0.04234566270854147,
+      "mean_nc_passive": 0.0358636931176646,
+      "delta_nc": 0.006481969590876865,
+      "wilcoxon_p": 7.020148990225835e-17
+    },
+    "SCig": {
+      "n_units": 41,
+      "n_pairs": 820,
+      "mean_nc_active": 0.04329924739141269,
+      "mean_nc_passive": 0.020309413052757522,
+      "delta_nc": 0.02298983433865517,
+      "wilcoxon_p": 7.568724140477543e-17
+    },
+    "MRN": {
+      "n_units": 28,
+      "n_pairs": 378,
+      "mean_nc_active": 0.03235441260031709,
+      "mean_nc_passive": 0.046596805401814795,
+      "delta_nc": -0.014242392801497708,
+      "wilcoxon_p": 1.2611586246261148e-05
+    }
+  }
+}

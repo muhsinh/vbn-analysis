@@ -1,0 +1,162 @@
+{
+  "method": "top-10 PCs per area \u00d7 flash-residualized \u00d7 25 cov ridge + CCA",
+  "n_pcs": 10,
+  "results": [
+    {
+      "area": "LGd",
+      "n_units": 42,
+      "weighted_total_r2": -0.2075025370967345,
+      "weighted_unique_running": 0.014208820073451811,
+      "weighted_unique_pupil": 0.03236498337039295,
+      "weighted_unique_face_svd": 0.020866449159888667,
+      "cca_top3": [
+        0.31094057418646903,
+        0.10481129107177528,
+        0.14434832154301977
+      ]
+    },
+    {
+      "area": "VISp",
+      "n_units": 44,
+      "weighted_total_r2": -0.06940677523498806,
+      "weighted_unique_running": 0.0061350747379949055,
+      "weighted_unique_pupil": 0.014063699598951374,
+      "weighted_unique_face_svd": 0.0058266185394506564,
+      "cca_top3": [
+        0.13978921209463177,
+        0.09254669859849064,
+        0.10210269556279633
+      ]
+    },
+    {
+      "area": "VISl",
+      "n_units": 40,
+      "weighted_total_r2": -0.09855603651274292,
+      "weighted_unique_running": 0.0012816886147279938,
+      "weighted_unique_pupil": 0.010656620372928582,
+      "weighted_unique_face_svd": 0.00872611124514977,
+      "cca_top3": [
+        -0.006128625434713955,
+        0.0481451646341982,
+        0.017077510328559822
+      ]
+    },
+    {
+      "area": "VISal",
+      "n_units": 42,
+      "weighted_total_r2": -0.027753327267440397,
+      "weighted_unique_running": 0.004799158525382374,
+      "weighted_unique_pupil": 0.005061772785848184,
+      "weighted_unique_face_svd": 0.003986456539426975,
+      "cca_top3": [
+        0.19154735716969112,
+        0.08440905174399244,
+        0.08049601692434491
+      ]
+    },
+    {
+      "area": "VISrl",
+      "n_units": 18,
+      "weighted_total_r2": -0.01841906853661346,
+      "weighted_unique_running": 0.00709388322088067,
+      "weighted_unique_pupil": 0.01240428572836949,
+      "weighted_unique_face_svd": 0.0017879905376516625,
+      "cca_top3": [
+        0.2258072149236989,
+        0.16306820393512853,
+        0.051549435191464286
+      ]
+    },
+    {
+      "area": "VISpm",
+      "n_units": 39,
+      "weighted_total_r2": -0.09282183214833095,
+      "weighted_unique_running": 0.015183185344103567,
+      "weighted_unique_pupil": 0.012468480296614182,
+      "weighted_unique_face_svd": 0.0019523944537072069,
+      "cca_top3": [
+        0.4237303852726723,
+        0.014531269153456134,
+        0.1558982682815011
+      ]
+    },
+    {
+      "area": "VISam",
+      "n_units": 32,
+      "weighted_total_r2": -0.05179314509004129,
+      "weighted_unique_running": 0.008668895952856026,
+      "weighted_unique_pupil": 0.009653920226484924,
+      "weighted_unique_face_svd": 0.006525547651537789,
+      "cca_top3": [
+        0.2042754362992259,
+        0.14452485222987904,
+        0.10031293276137551
+      ]
+    },
+    {
+      "area": "CA1",
+      "n_units": 42,
+      "weighted_total_r2": -0.1280070353672471,
+      "weighted_unique_running": 0.006653379644575352,
+      "weighted_unique_pupil": 0.007765098718919283,
+      "weighted_unique_face_svd": 0.004325284959937115,
+      "cca_top3": [
+        0.2509775578859022,
+        0.02853338086922997,
+        0.09018894831302358
+      ]
+    },
+    {
+      "area": "DG",
+      "n_units": 37,
+      "weighted_total_r2": -0.03991158708132225,
+      "weighted_unique_running": 0.0067068374940442155,
+      "weighted_unique_pupil": 0.0076013696487047255,
+      "weighted_unique_face_svd": 0.0029731973738416073,
+      "cca_top3": [
+        0.2652117055655957,
+        0.07872855773992783,
+        0.01481963983934596
+      ]
+    },
+    {
+      "area": "ProS",
+      "n_units": 55,
+      "weighted_total_r2": -0.14132168930614641,
+      "weighted_unique_running": 0.07699456190822795,
+      "weighted_unique_pupil": 0.041663947380560895,
+      "weighted_unique_face_svd": 0.023630880217346828,
+      "cca_top3": [
+        0.6533201437227805,
+        0.008552621194558596,
+        0.10268611478651947
+      ]
+    },
+    {
+      "area": "SCig",
+      "n_units": 41,
+      "weighted_total_r2": 0.07730957063274335,
+      "weighted_unique_running": 0.09661869325204187,
+      "weighted_unique_pupil": 0.01144564398023773,
+      "weighted_unique_face_svd": 0.004052825863408049,
+      "cca_top3": [
+        0.6944835403938525,
+        0.19450732187183895,
+        0.12355603262788642
+      ]
+    },
+    {
+      "area": "MRN",
+      "n_units": 28,
+      "weighted_total_r2": 0.010813164512124995,
+      "weighted_unique_running": 0.07708759913598362,
+      "weighted_unique_pupil": 0.025057693019897354,
+      "weighted_unique_face_svd": 0.008922574663187799,
+      "cca_top3": [
+        0.6683247414415213,
+        0.07889670760010775,
+        0.166268502618177
+      ]
+    }
+  ]
+}
