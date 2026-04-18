@@ -5,7 +5,8 @@ Published artifacts from the VBN-analysis pipeline, session `1055240613`.
 ## Start here
 - **[ROUND3_FINDINGS.md](ROUND3_FINDINGS.md)** — latest results (F2 ZETA, D3 banded ridge, G fair-Stringer test, H noise correlations). **Noise correlations by state is the single most scientifically interesting result.**
 - **[NB08_FULL_ANALYSIS.md](NB08_FULL_ANALYSIS.md)** — rounds 1 & 2: initial findings + post-critique addendum.
-- **[YC_SESSION_EXPORT.md](YC_SESSION_EXPORT.md)** — narrative session summary (bug catch + multi-agent critique arc).
+- **[YC_SESSION_EXPORT_v2.md](YC_SESSION_EXPORT_v2.md)** — **application artifact, tightened after YC+a16z investor-composite feedback**. Raw prompts + critique quotes + commercial thesis.
+- **[YC_SESSION_EXPORT.md](YC_SESSION_EXPORT.md)** — v1 narrative, superseded by v2.
 - **[Z2_critique_resolution_summary.png](Z2_critique_resolution_summary.png)** — 6-panel before/after figure.
 
 ## Per-deliverable artifacts
