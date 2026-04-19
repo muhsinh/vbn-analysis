@@ -38,15 +38,7 @@ Two survived critique. Two didn't. Details below.
 
 ## Five prompts that mattered
 
-Not every prompt in a multi-hour session is load-bearing. These five did the work.
-
-> **"peak ram was like 60 gb dawggggggg"**
-
-12 words. Kicked off the methodology-deep-dive that found the 780-keypoint design-matrix blow-up, plus forced me to think about whether any head-fixed VBN literature motivates raw keypoint inclusion (answer: no). The casualness is the point — the leverage is in knowing which 12-word diagnosis to hand off, not in writing the prose around it.
-
-> **"think about wht research says and if it makes sense do it"**
-
-Delegation with a literature prior. The agent came back citing Stringer 2019, Syeda 2024, Musall 2019, Siegle 2021, and the head-fixed confound — then dropped the keypoints. No micro-management, no permission round-trips. The agent validates the prior against the actual field and executes.
+Not every prompt in a multi-hour session is load-bearing. Kicked off the methodology-deep-dive that found the 780-keypoint design-matrix blow-up, plus forced me to think about whether any head-fixed VBN literature motivates raw keypoint inclusion (answer: no). The casualness is the point — the leverage is in knowing which 12-word diagnosis to hand off, not in writing the prose around it. Delegation with a literature prior. The agent came back citing Stringer 2019, Syeda 2024, Musall 2019, Siegle 2021, and the head-fixed confound — then dropped the keypoints. No micro-management, no permission round-trips. The agent validates the prior against the actual field and executes.
 
 > **"act as top researchers and leaders as this field in agents and think about these questions and any others, and critique whats done so far"**
 
@@ -54,11 +46,7 @@ Role-conditioning with specificity. I named Pillow/Park/Kriegeskorte/Simoncelli,
 
 > **"whgats the core signal and do i have it? use multiple agents tyo think abt it and tell me"**
 
-Meta-selection under uncertainty. Asking the tool to run the "is this thing real or am I fooling myself" check. Two independent investor-composite agents returned 8/10 and 8.5/10 with the same convergent critique about range vs depth. Using agents to disagree with you faster than any human advisor could.
-
-> **"back to yc. is the yc claude md thing oyu made the right hting odr this position?"**
-
-The meta-check on the output itself. Rare in the agent-user corpus. Agents tend to over-deliver on prompts as stated; asking "is what you made the right *kind* of thing" is the taste signal most users don't exercise. It's how v2 of this document exists.
+Meta-selection under uncertainty. Asking the tool to run the "is this thing real or am I fooling myself" check. Two independent investor-composite agents returned 8/10 and 8.5/10 with the same convergent critique about range vs depth. Using agents to disagree with you faster than any human advisor could. The meta-check on the output itself. Rare in the agent-user corpus. Agents tend to over-deliver on prompts as stated; asking "is what you made the right *kind* of thing" is the taste signal most users don't exercise. It's how v2 of this document exists.
 
 An opinion that falls out of running this loop enough times: **I re-roll personas whenever critic convergence falls below ~60%. Agreement among poorly-specified personas is a worse signal than disagreement among well-specified ones.** The output of a panel isn't the critiques — it's the convergence score on the critiques.
 
