@@ -1,0 +1,66 @@
+{
+  "method": "per-area population response vector per flash_n; magnitude ratio + angle vs flash-1",
+  "n_sessions": 3,
+  "cross_session_flash8": {
+    "CA1": {
+      "epoch": "passive",
+      "mag_ratio": 1.0125378500234332,
+      "angle_deg": 78.19010919984163
+    },
+    "DG": {
+      "epoch": "passive",
+      "mag_ratio": 0.751941598760383,
+      "angle_deg": 57.56828344817245
+    },
+    "LGd": {
+      "epoch": "passive",
+      "mag_ratio": 1.026780541489787,
+      "angle_deg": 14.149253911431105
+    },
+    "MRN": {
+      "epoch": "passive",
+      "mag_ratio": 1.1237065040609093,
+      "angle_deg": 28.47655146615436
+    },
+    "ProS": {
+      "epoch": "passive",
+      "mag_ratio": 1.1674945818823719,
+      "angle_deg": 92.22993472159945
+    },
+    "SCig": {
+      "epoch": "passive",
+      "mag_ratio": 0.8464628968254658,
+      "angle_deg": 37.26418245895909
+    },
+    "VISal": {
+      "epoch": "passive",
+      "mag_ratio": 0.8986526038176575,
+      "angle_deg": 10.978890996877288
+    },
+    "VISam": {
+      "epoch": "passive",
+      "mag_ratio": 0.8789532394149181,
+      "angle_deg": 15.47611008413827
+    },
+    "VISl": {
+      "epoch": "passive",
+      "mag_ratio": 0.8995842787758157,
+      "angle_deg": 10.648862145916121
+    },
+    "VISp": {
+      "epoch": "passive",
+      "mag_ratio": 0.9054827978078069,
+      "angle_deg": 11.588966337105726
+    },
+    "VISpm": {
+      "epoch": "passive",
+      "mag_ratio": 0.9198860179381648,
+      "angle_deg": 16.980890889410375
+    },
+    "VISrl": {
+      "epoch": "passive",
+      "mag_ratio": 0.8799455933725658,
+      "angle_deg": 14.806850418666947
+    }
+  }
+}
