@@ -1,0 +1,80 @@
+{
+  "method": "5-fold stratified logistic regression CV, class-weight=balanced",
+  "prestim_window_s": [
+    -0.5,
+    0.0
+  ],
+  "behav_covariates": [
+    "pupil",
+    "pupil_vel",
+    "running"
+  ],
+  "behavior_only_AUC_mean": 0.6171860899118583,
+  "cross_session_area_auc": {
+    "BEHAVIOR_ONLY": {
+      "n_sessions": 3,
+      "auc_raw": 0.6171860899118583,
+      "auc_residualized": 0.6171860899118583
+    },
+    "CA1": {
+      "n_sessions": 3,
+      "auc_raw": 0.6181401117550692,
+      "auc_residualized": 0.5806132511361133
+    },
+    "DG": {
+      "n_sessions": 3,
+      "auc_raw": 0.5353475046256925,
+      "auc_residualized": 0.49291787727537884
+    },
+    "LGd": {
+      "n_sessions": 1,
+      "auc_raw": 0.631633064516129,
+      "auc_residualized": 0.6399899193548386
+    },
+    "MRN": {
+      "n_sessions": 2,
+      "auc_raw": 0.5879453234392751,
+      "auc_residualized": 0.5272247306874323
+    },
+    "ProS": {
+      "n_sessions": 2,
+      "auc_raw": 0.5486615200266867,
+      "auc_residualized": 0.5274948499461586
+    },
+    "SCig": {
+      "n_sessions": 3,
+      "auc_raw": 0.5318198115246199,
+      "auc_residualized": 0.5108788396271279
+    },
+    "VISal": {
+      "n_sessions": 3,
+      "auc_raw": 0.6185203974191346,
+      "auc_residualized": 0.6054002290136649
+    },
+    "VISam": {
+      "n_sessions": 3,
+      "auc_raw": 0.6407333664392018,
+      "auc_residualized": 0.6611412356763847
+    },
+    "VISl": {
+      "n_sessions": 3,
+      "auc_raw": 0.6695825520795089,
+      "auc_residualized": 0.6345680513764811
+    },
+    "VISp": {
+      "n_sessions": 3,
+      "auc_raw": 0.7336744194761161,
+      "auc_residualized": 0.6941803521450128
+    },
+    "VISpm": {
+      "n_sessions": 3,
+      "auc_raw": 0.5820169574538488,
+      "auc_residualized": 0.6067404702650823
+    },
+    "VISrl": {
+      "n_sessions": 3,
+      "auc_raw": 0.5644711970436634,
+      "auc_residualized": 0.5357542129462778
+    }
+  }
+}

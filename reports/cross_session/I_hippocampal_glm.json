@@ -1,0 +1,34 @@
+{
+  "method": "3-regressor OLS per unit (intercept + is_change + licked + got_reward)",
+  "window": [
+    0.05,
+    0.3
+  ],
+  "baseline": [
+    -0.25,
+    -0.05
+  ],
+  "cross_session_area": {
+    "CA1": {
+      "n_units": 272,
+      "beta_change": -0.27045387641146823,
+      "beta_lick": 0.3940291394335513,
+      "beta_reward": 0.2142106987323224,
+      "frac_reward_dominant": 0.5036764705882353
+    },
+    "DG": {
+      "n_units": 112,
+      "beta_change": 0.9739816351744783,
+      "beta_lick": 0.20973875661375985,
+      "beta_reward": -0.06570970370288043,
+      "frac_reward_dominant": 0.5803571428571429
+    },
+    "ProS": {
+      "n_units": 67,
+      "beta_change": 0.39528805249116933,
+      "beta_lick": -0.0966003316749602,
+      "beta_reward": 0.4454172389538142,
+      "frac_reward_dominant": 0.40298507462686567
+    }
+  }
+}
